@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Globe, ChevronDown, Settings, LogOut, User, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,6 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { createClient } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
+import type { Client } from "@/types/client.ts";
+import type { RegUser } from "@/types/user.ts";
+
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -21,9 +28,57 @@ const languages = [
   { code: 'ar', name: 'العربية' },
 ];
 
+function getInitials(name?: string): string {
+  if (!name) return "";
+
+  return name
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(word => word[0].toUpperCase())
+    .join("");
+}
+
+
 export function TopNavigation() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [hasNotifications] = useState(true);
+
+  const [userName, setUser] = useState<RegUser>();
+  const [clientName, setClient] = useState<Client>();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    getUser();
+  }, []);
+
+  async function getUser(): Promise<void> {
+  // 1. Pega o usuário logado
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const {data} = await supabase.from("users").select().eq("user_id", user.id).limit(1).single();
+      setUser(data);
+    }
+  }
+
+  useEffect(() => {
+    getClient(userName?.client_id);
+  }, [userName?.client_id]);
+
+    async function getClient(clientId: number): Promise<void> {
+      const {data} = await supabase.from("clients").select().eq("id", clientId).limit(1).single();
+      setClient(data);
+  }
+
+  
+
+  const handleLogout = async () => {
+      await supabase.auth.signOut();
+      navigate('/login');
+  };
+  
 
   return (
     <header className="h-16 flex items-center justify-between px-8 bg-background border-b border-border/50">
@@ -73,10 +128,10 @@ export function TopNavigation() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 hover:bg-accent px-3 py-2 rounded-sm transition-colors duration-300">
-              <span className="text-sm font-medium text-foreground tracking-wide">Fungisteel</span>
+              <span className="text-sm font-medium text-foreground tracking-wide">{userName?.name}</span>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-charcoal flex items-center justify-center">
-                  <span className="text-xs font-medium text-primary-foreground">F</span>
+                  <span className="text-xs font-medium text-primary-foreground">{getInitials(userName?.name)}</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
               </div>
@@ -84,8 +139,8 @@ export function TopNavigation() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-popover border border-border shadow-luxury-lg">
             <div className="px-3 py-3 border-b border-border">
-              <p className="text-sm font-medium text-foreground">Fungisteel</p>
-              <p className="text-xs text-muted-foreground mt-0.5">client@fungisteel.com</p>
+              <p className="text-sm font-medium text-foreground">{clientName?.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{userName?.email}</p>
             </div>
             <div className="py-1">
               <DropdownMenuItem className="cursor-pointer gap-3 text-sm text-muted-foreground hover:text-foreground">
@@ -102,7 +157,7 @@ export function TopNavigation() {
               </DropdownMenuItem>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer gap-3 text-sm text-muted-foreground hover:text-foreground">
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer gap-3 text-sm text-muted-foreground hover:text-foreground">
               <LogOut className="w-4 h-4" strokeWidth={1.5} />
               Sign Out
             </DropdownMenuItem>

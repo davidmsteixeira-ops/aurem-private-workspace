@@ -10,8 +10,12 @@ import Decisions from "./pages/Decisions";
 import Assets from "./pages/Assets";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/AuthProvider";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
+
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -21,9 +25,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<PrivateOffice />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/brand-vault" element={<BrandVault />} />
           <Route path="/brand-intelligence" element={<BrandIntelligence />} />
-          <Route path="/decisions" element={<Decisions />} />
+          {/* <Route path="/decisions" element={<Decisions />} /> */}
+          <Route path="/decisions" element={<ProtectedRoute><Decisions /></ProtectedRoute>} />
           <Route path="/assets" element={<Assets />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />

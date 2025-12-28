@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Clock } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { cn } from '@/lib/utils';
+import { createClient } from "@supabase/supabase-js";
+
+
+
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+
 
 const vaultSections = [
   {
@@ -188,6 +194,21 @@ function VaultSection({ section, isOpen, onToggle }: {
 export default function BrandVault() {
   const [openSections, setOpenSections] = useState<string[]>(['strategy']);
 
+  const [clients, setClients] = useState([]);
+
+  useEffect(() => {
+    getClients();
+  }, []);
+
+  async function getClients() {
+    const {data} = await supabase.from("clients").select();
+    setClients(data);
+  }
+
+  console.log("BV: ", clients[0]?.name);
+
+
+
   const toggleSection = (id: string) => {
     setOpenSections(prev => 
       prev.includes(id) 
@@ -209,8 +230,10 @@ export default function BrandVault() {
           <h1 className="font-serif text-4xl text-foreground tracking-tight mb-3">
             Brand Vault
           </h1>
+
           <p className="text-muted-foreground">
             Complete brand documentation and strategic foundation
+            
           </p>
         </motion.div>
 
