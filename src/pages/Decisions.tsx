@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { cn } from '@/lib/utils';
+import { getDecisionsRationales } from '@/hooks/DecisionsRationaleInfo';
+import { Decision } from '@/types/decisions';
 
 type DecisionStatus = 'aligned' | 'partial' | 'not-aligned';
 
-interface Decision {
+interface Decision2 {
   id: string;
   title: string;
   status: DecisionStatus;
@@ -13,7 +15,7 @@ interface Decision {
   category: string;
 }
 
-const decisions: Decision[] = [
+const decisions: Decision2[] = [
   {
     id: '1',
     title: 'Website Redesign: Prioritize Material Storytelling',
@@ -79,7 +81,21 @@ const statusConfig = {
   },
 };
 
+export function formatLongDate(
+  date: string | null,
+  locale = 'en-US'
+) {
+  if (!date) return '—';
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(date));
+}
+
 export default function Decisions() {
+  const decisionsInfo = getDecisionsRationales();
   return (
     <MainLayout>
       <div className="p-12 max-w-4xl">
@@ -105,7 +121,7 @@ export default function Decisions() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="space-y-4"
         >
-          {decisions.map((decision, index) => {
+          {decisionsInfo.map((decision, index) => {
             const status = statusConfig[decision.status];
             return (
               <motion.div
@@ -123,7 +139,7 @@ export default function Decisions() {
                       </span>
                       <span className="text-muted-foreground">·</span>
                       <span className="text-xs text-muted-foreground">
-                        {decision.date}
+                        {formatLongDate(decision.updated_at)}
                       </span>
                     </div>
                     <h2 className="font-serif text-xl text-foreground">

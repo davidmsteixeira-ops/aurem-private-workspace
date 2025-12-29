@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthInfo } from '@/hooks/UserInfo';
-import { BrandVaultEntries } from '@/types/brand_vault_entries';
 import { BrandVaultSection } from '@/types/brand_vault_sections';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);

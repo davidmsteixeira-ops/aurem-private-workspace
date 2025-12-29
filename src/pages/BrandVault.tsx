@@ -4,8 +4,6 @@ import { ChevronDown, Clock } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { cn } from '@/lib/utils';
 import { getBrandVaultEntries, getBrandVaultSections } from '@/hooks/BrandVaultInfo';
-import { BrandVaultSection } from '@/types/brand_vault_sections';
-import { BrandVaultEntries } from '@/types/brand_vault_entries';
 
 type BrandVaultInfo = {
   category: string;
@@ -221,8 +219,7 @@ function VaultSection({ section, isOpen, onToggle }: {
 
 export default function BrandVault() {
   const [openSections, setOpenSections] = useState<string[]>(['strategy']);
-  // const {brandVaultContent, loading} = getBrandVaultEntries();
-  const brandVaultSections = getBrandVaultSections();
+  // const brandVaultSections = getBrandVaultSections();
   const brandVaultEntries = getBrandVaultEntries();
 
   const toggleSection = (id: string) => {
