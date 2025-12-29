@@ -10,8 +10,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
-import type { Client } from "@/types/client.ts";
-import type { RegUser } from "@/types/user.ts";
+import { getAuthInfo } from '@/hooks/UserInfo';
+
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
@@ -44,35 +44,8 @@ function getInitials(name?: string): string {
 export function TopNavigation() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [hasNotifications] = useState(true);
-
-  const [userName, setUser] = useState<RegUser>();
-  const [clientName, setClient] = useState<Client>();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    getUser();
-  }, []);
-
-  async function getUser(): Promise<void> {
-  // 1. Pega o usuário logado
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      const {data} = await supabase.from("users").select().eq("user_id", user.id).limit(1).single();
-      setUser(data);
-    }
-  }
-
-  useEffect(() => {
-    getClient(userName?.client_id);
-  }, [userName?.client_id]);
-
-    async function getClient(clientId: number): Promise<void> {
-      const {data} = await supabase.from("clients").select().eq("id", clientId).limit(1).single();
-      setClient(data);
-  }
-
-  
+  const {userInfo, loading} = getAuthInfo();
 
   const handleLogout = async () => {
       await supabase.auth.signOut();
@@ -128,10 +101,10 @@ export function TopNavigation() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 hover:bg-accent px-3 py-2 rounded-sm transition-colors duration-300">
-              <span className="text-sm font-medium text-foreground tracking-wide">{userName?.name}</span>
+              <span className="text-sm font-medium text-foreground tracking-wide">{userInfo?.name}</span>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-charcoal flex items-center justify-center">
-                  <span className="text-xs font-medium text-primary-foreground">{getInitials(userName?.name)}</span>
+                  <span className="text-xs font-medium text-primary-foreground">{getInitials(userInfo?.name)}</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
               </div>
@@ -139,8 +112,8 @@ export function TopNavigation() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-popover border border-border shadow-luxury-lg">
             <div className="px-3 py-3 border-b border-border">
-              <p className="text-sm font-medium text-foreground">{clientName?.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{userName?.email}</p>
+              <p className="text-sm font-medium text-foreground">{userInfo?.client_name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{userInfo?.email}</p>
             </div>
             <div className="py-1">
               <DropdownMenuItem className="cursor-pointer gap-3 text-sm text-muted-foreground hover:text-foreground">

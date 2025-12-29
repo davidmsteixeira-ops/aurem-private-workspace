@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Archive, Sparkles, ListChecks, ArrowRight } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { getAuthInfo } from '@/hooks/UserInfo';
+
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -39,6 +41,10 @@ const officeCards = [
 ];
 
 export default function PrivateOffice() {
+  const {userInfo, loading} = getAuthInfo();
+
+  if (loading) return null;
+
   return (
     <MainLayout>
       <div className="p-12 max-w-5xl">
@@ -50,7 +56,7 @@ export default function PrivateOffice() {
           className="mb-16"
         >
           <h1 className="font-serif text-4xl md:text-5xl text-foreground tracking-tight mb-4">
-            Fungisteel
+            {userInfo?.client_name}
           </h1>
           <p className="text-lg text-muted-foreground font-light max-w-xl">
             Private Brand Office

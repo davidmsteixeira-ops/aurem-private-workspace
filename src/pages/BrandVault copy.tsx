@@ -3,23 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Clock } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { cn } from '@/lib/utils';
-import { getBrandVaultEntries, getBrandVaultSections } from '@/hooks/BrandVaultInfo';
-import { BrandVaultSection } from '@/types/brand_vault_sections';
-import { BrandVaultEntries } from '@/types/brand_vault_entries';
+import { getBrandInfo } from '@/hooks/BrandVaultInfo';
+import { BrandBlock } from '@/types/brand_vault_entries';
 
-type BrandVaultInfo = {
-  category: string;
-  section_id: number;
-  slug: string;
-  content: string;
-  user_id: number;
-  user_name: string;
-  client_id: number;
-  client_name: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  updated_by: number;
+type VaultSectionUI = {
+  id: string;
+  title: string;
+  lastUpdated: string;
+  content: {
+    title?: string;
+    blocks: BrandBlock[];
+  } | null;
 };
 
 
@@ -144,23 +138,9 @@ For asset requests or custom applications, please contact your dedicated brand l
   },
 ];
 
-export function formatLongDate(
-  date: string | null,
-  locale = 'en-US'
-) {
-  if (!date) return '—';
-
-  return new Intl.DateTimeFormat(locale, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(date));
-}
-
 function VaultSection({ section, isOpen, onToggle }: { 
-  // section: typeof vaultSections[0];
-  // section: VaultSectionUI;
-  section: BrandVaultInfo;
+  // section: typeof vaultSections[0]; 
+  section: VaultSectionUI;
   isOpen: boolean; 
   onToggle: () => void;
 }) {
@@ -171,12 +151,12 @@ function VaultSection({ section, isOpen, onToggle }: {
         className="w-full flex items-center justify-between py-6 px-2 text-left hover:bg-accent/30 transition-colors duration-300"
       >
         <div className="flex items-center gap-4">
-          <h2 className="font-serif text-xl text-foreground">{section.category}</h2>
+          <h2 className="font-serif text-xl text-foreground">{section.title}</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
-            <span className="text-xs">{formatLongDate(section.updated_at)}</span>
+            <span className="text-xs">{section.lastUpdated}</span>
           </div>
           <ChevronDown 
             className={cn(
@@ -221,9 +201,10 @@ function VaultSection({ section, isOpen, onToggle }: {
 
 export default function BrandVault() {
   const [openSections, setOpenSections] = useState<string[]>(['strategy']);
-  // const {brandVaultContent, loading} = getBrandVaultEntries();
-  const brandVaultSections = getBrandVaultSections();
-  const brandVaultEntries = getBrandVaultEntries();
+  const { sections, loading } = getBrandInfo();
+  
+
+
 
   const toggleSection = (id: string) => {
     setOpenSections(prev => 
@@ -262,12 +243,28 @@ export default function BrandVault() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="bg-card border border-border rounded-sm"
         >
-          {brandVaultEntries.map((section) => (
+          {/* {vaultSections.map((section) => (
             <VaultSection
-              key={section.section_id}
+              key={section.id}
               section={section}
-              isOpen={openSections.includes(section.category)}
-              onToggle={() => toggleSection(section.category)}
+              isOpen={openSections.includes(section.id)}
+              onToggle={() => toggleSection(section.id)}
+            />
+          ))} */}
+
+          {sections.map((section) => (
+            <VaultSection
+              key={section.id}
+              section={{
+                id: section.slug,
+                title: section.name,
+                lastUpdated: section.updated_at
+                  ? new Date(section.updated_at).toLocaleDateString()
+                  : '—',
+                content: section.content,
+              }}
+              isOpen={openSections.includes(section.slug)}
+              onToggle={() => toggleSection(section.slug)}
             />
           ))}
 
