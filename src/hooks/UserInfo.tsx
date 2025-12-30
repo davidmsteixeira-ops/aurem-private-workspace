@@ -15,6 +15,13 @@ type UserInfo = {
   client_name: string;
   client_status: string;
   client_driver_folder_id: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  timezone: string;
+  language: string;
+  password_updated_at: string;
+  mfa_enabled: boolean;
 };
 
 
@@ -50,6 +57,6 @@ export function getAuthInfo() {
         setLoading(false);
     }
 
-    const userInfo: UserInfo = userName && clientName ? {user_id: userName.id, name: userName.name, email: userName.email, role: userName.role, client_id: clientName.id, client_name: clientName.name, client_status: clientName.status, client_driver_folder_id: clientName.drive_folder_id} : null;
+    const userInfo: UserInfo = userName && clientName ? {user_id: userName.id, name: userName.name, email: userName.email, role: userName.role, client_id: clientName.id, client_name: clientName.name, client_status: clientName.status, client_driver_folder_id: clientName.drive_folder_id, first_name: userName.first_name, last_name: userName.last_name, phone_number: userName.phone_number, timezone: userName.timezone, language: userName.language, password_updated_at: userName.password_updated_at, mfa_enabled: userName.mfa_enabled} : null;
   return {userInfo, loading};
 };

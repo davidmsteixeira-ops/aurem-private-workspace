@@ -1,13 +1,104 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { getAuthInfo } from '@/hooks/UserInfo';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+
 
 export default function ProfileSettings() {
+  const {userInfo, loading: loadingAuth} = getAuthInfo();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+// Estado para os campos do formulário
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: '',
+    role: '',
+    timezone: '',
+    language: '',
+  });
+
+  // Sincroniza os dados iniciais do Supabase com o estado local
+  useEffect(() => {
+    if (userInfo && !isInitialized) {
+      setFormData({
+        first_name: userInfo.first_name || '',
+        last_name: userInfo.last_name || '',
+        email: userInfo.email || '',
+        phone_number: userInfo.phone_number || '',
+        role: userInfo.role || '',
+        timezone: userInfo.timezone || '',
+        language: userInfo.language || '',
+      });
+      setIsInitialized(true);
+    }
+  }, [userInfo, isInitialized]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, name, value } = e.target;
+    const fieldName = name || id; // Prioriza o name se existir
+    
+    // Mapeamento para o campo 'role'
+    const targetKey = fieldName === 'title' ? 'role' : fieldName;
+
+    setFormData(prev => ({ 
+      ...prev, 
+      [targetKey]: value 
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    const toastId = toast.loading("Updating your profile...");
+
+    try {
+      if (!userInfo) throw new Error("No user found");
+
+      // Update na tabela 'profiles'
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: formData.first_name + " " + formData.last_name,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          phone_number: formData.phone_number,
+          role: formData.role,
+          timezone: formData.timezone,
+          language: formData.language,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userInfo.user_id);
+
+      if (error) throw error;
+
+      toast.success("Profile updated successfully", { id: toastId });
+      // 2. Aguarda 1.5 segundos para o utilizador ler a confirmação e depois faz o refresh
+    setTimeout(() => {
+      window.location.reload(); 
+      // Alternativa se usares react-router-dom: navigate(0);
+    }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile", { id: toastId });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (loadingAuth) {
+    return <div className="flex h-screen items-center justify-center font-serif italic text-neutral-400">Loading Office...</div>;
+  }
+
+
   return (
     <MainLayout>
       <div className="p-12 max-w-2xl">
@@ -45,7 +136,7 @@ export default function ProfileSettings() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="w-24 h-24 bg-accent rounded-full flex items-center justify-center">
-                <span className="text-2xl font-medium text-foreground">F</span>
+                <span className="text-2xl font-medium text-foreground">{formData.first_name?.charAt(0) || formData.email?.charAt(0)}</span>
               </div>
               <button className="absolute bottom-0 right-0 p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors">
                 <Camera className="w-4 h-4 text-foreground" />
@@ -79,8 +170,10 @@ export default function ProfileSettings() {
                 First Name
               </Label>
               <Input
-                id="firstName"
-                defaultValue="Alexander"
+                name="first_name"
+                id="first_name"
+                defaultValue={formData.first_name}
+                onChange={handleInputChange}
                 className="bg-card border-border focus:border-foreground"
               />
             </div>
@@ -89,8 +182,10 @@ export default function ProfileSettings() {
                 Last Name
               </Label>
               <Input
-                id="lastName"
-                defaultValue="Morrison"
+                name="last_name"
+                id="last_name"
+                defaultValue={formData.last_name}
+                onChange={handleInputChange}
                 className="bg-card border-border focus:border-foreground"
               />
             </div>
@@ -103,9 +198,12 @@ export default function ProfileSettings() {
             <Input
               id="email"
               type="email"
-              defaultValue="alexander@fungisteel.com"
+              value={formData.email}
+              disabled
+              onChange={handleInputChange}
               className="bg-card border-border focus:border-foreground"
             />
+            <p className="text-[10px] text-neutral-400 italic font-light">Contact administration to change your official email.</p>
           </div>
 
           <div className="space-y-2">
@@ -113,9 +211,11 @@ export default function ProfileSettings() {
               Phone Number
             </Label>
             <Input
-              id="phone"
+              id="phone_number"
+              name="phone_number"
               type="tel"
-              defaultValue="+1 (555) 123-4567"
+              defaultValue={formData.phone_number}
+              onChange={handleInputChange}
               className="bg-card border-border focus:border-foreground"
             />
           </div>
@@ -125,8 +225,10 @@ export default function ProfileSettings() {
               Title / Role
             </Label>
             <Input
-              id="title"
-              defaultValue="Chief Executive Officer"
+              id="role"
+              name="role"
+              defaultValue={formData.role}
+              onChange={handleInputChange}
               className="bg-card border-border focus:border-foreground"
             />
           </div>
@@ -151,7 +253,9 @@ export default function ProfileSettings() {
             </Label>
             <Input
               id="timezone"
-              defaultValue="Eastern Time (ET)"
+              name="timezone"
+              defaultValue={formData.timezone}
+              onChange={handleInputChange}
               className="bg-card border-border focus:border-foreground"
             />
           </div>
@@ -162,7 +266,9 @@ export default function ProfileSettings() {
             </Label>
             <Input
               id="language"
-              defaultValue="English (US)"
+              name="language"
+              defaultValue={formData.language}
+              onChange={handleInputChange}
               className="bg-card border-border focus:border-foreground"
             />
           </div>
@@ -175,8 +281,16 @@ export default function ProfileSettings() {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mt-12"
         >
-          <Button className="bg-foreground text-background hover:bg-foreground/90 px-8">
-            Save Changes
+          <Button 
+            onClick={handleSaveChanges} 
+            disabled={isSaving}
+            className="bg-foreground text-background hover:bg-foreground/90 px-8">
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Updating...
+              </>
+            ) : "Save Changes"}
           </Button>
         </motion.div>
       </div>

@@ -1,81 +1,105 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { getAuthInfo } from '@/hooks/UserInfo';
+import { getNotificationsInfo } from '@/hooks/NotificationsInfo';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
-const notificationGroups = [
-  {
-    title: 'Brand Updates',
-    description: 'Stay informed about changes to your brand assets and documentation',
-    notifications: [
-      {
-        id: 'vault-updates',
-        label: 'Brand Vault Updates',
-        description: 'When documents or assets are added or modified',
-        defaultChecked: true,
-      },
-      {
-        id: 'decision-updates',
-        label: 'Decision Notifications',
-        description: 'When new strategic decisions require your attention',
-        defaultChecked: true,
-      },
-      {
-        id: 'asset-uploads',
-        label: 'Asset Uploads',
-        description: 'When new files are added to your asset library',
-        defaultChecked: false,
-      },
-    ],
-  },
-  {
-    title: 'Intelligence Reports',
-    description: 'Periodic insights and analysis from Brand Intelligence',
-    notifications: [
-      {
-        id: 'weekly-summary',
-        label: 'Weekly Summary',
-        description: 'A digest of brand activity and insights each week',
-        defaultChecked: true,
-      },
-      {
-        id: 'monthly-report',
-        label: 'Monthly Report',
-        description: 'Comprehensive monthly brand health report',
-        defaultChecked: true,
-      },
-      {
-        id: 'real-time-alerts',
-        label: 'Real-time Alerts',
-        description: 'Immediate notifications for critical brand matters',
-        defaultChecked: false,
-      },
-    ],
-  },
-  {
-    title: 'Communication Preferences',
-    description: 'How you prefer to receive notifications',
-    notifications: [
-      {
-        id: 'email-notifications',
-        label: 'Email Notifications',
-        description: 'Receive updates via email',
-        defaultChecked: true,
-      },
-      {
-        id: 'in-app-notifications',
-        label: 'In-App Notifications',
-        description: 'Show notifications within the Private Office',
-        defaultChecked: true,
-      },
-    ],
-  },
-];
+// How Notifications are Grouped
+// type GroupedNotification = {
+//   group_id: number;
+//   group_title: string;
+//   group_description: string;
+//   notifications: NotificationEntry[];
+// };
+
+// type NotificationEntry = {
+//   id: number;
+//   notification_group_id: number;
+//   user_id: number;
+//   label: string;
+//   description: string;
+//   created_at: string;
+//   updated_at: string;
+//   checked: boolean;
+// };
 
 export default function NotificationsSettings() {
+  const {userInfo, loading: loadingAuth} = getAuthInfo();
+  const notificationGroups = getNotificationsInfo();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Estado para controlar os switches: { [id_notificacao]: boolean }
+  const [localSettings, setLocalSettings] = useState<Record<number, boolean>>({});
+
+  // Inicializa o estado local quando os dados chegam do banco
+  useEffect(() => {
+    if (notificationGroups.length > 0 && !isInitialized) {
+      const initialState: Record<number, boolean> = {};
+      
+      notificationGroups.forEach(group => {
+        group.notifications.forEach(notif => {
+          initialState[notif.id] = notif.checked;
+        });
+      });
+      
+      setLocalSettings(initialState);
+      setIsInitialized(true);
+    }
+  }, [notificationGroups, isInitialized]);
+
+  // Função para alternar o switch individualmente
+  const handleToggle = (id: number, checked: boolean) => {
+    setLocalSettings(prev => ({
+      ...prev,
+      [id]: checked
+    }));
+  };
+
+  const handleSavePreferences = async () => {
+    setIsSaving(true);
+    const toastId = toast.loading("Refining notification filters...");
+
+    try {
+      // Prepara os dados para atualização
+      // Vamos iterar sobre o objeto localSettings e atualizar cada linha
+      const updates = Object.entries(localSettings).map(([id, checked]) => ({
+        id: Number(id),
+        checked: checked,
+        updated_at: new Date().toISOString(),
+      }));
+
+      // No Supabase, podemos usar o .upsert para atualizar várias linhas de uma vez
+      // desde que o 'id' esteja presente para fazer o match
+      const { error } = await supabase
+        .from('notification_entries') // Substitua pelo nome real da sua tabela
+        .upsert(updates);
+
+      if (error) throw error;
+
+      toast.success("Preferences archived successfully", { id: toastId });
+
+      // Refresh de luxo com delay de 1.5s
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save preferences", { id: toastId });
+      setIsSaving(false);
+    }
+  };
+
+  if (loadingAuth) return null;
+
+
   return (
     <MainLayout>
       <div className="p-12 max-w-2xl">
@@ -107,17 +131,17 @@ export default function NotificationsSettings() {
         <div className="space-y-10">
           {notificationGroups.map((group, groupIndex) => (
             <motion.div
-              key={group.title}
+              key={group.group_title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: groupIndex * 0.1 }}
             >
               <div className="mb-6">
                 <h2 className="font-serif text-xl text-foreground mb-1">
-                  {group.title}
+                  {group.group_title}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {group.description}
+                  {group.group_description}
                 </p>
               </div>
 
@@ -135,7 +159,8 @@ export default function NotificationsSettings() {
                         {notification.description}
                       </p>
                     </div>
-                    <Switch defaultChecked={notification.defaultChecked} />
+                    <Switch checked={localSettings[notification.id] ?? notification.checked} 
+                      onCheckedChange={(checked) => handleToggle(notification.id, checked)} />
                   </div>
                 ))}
               </div>
@@ -154,11 +179,19 @@ export default function NotificationsSettings() {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mt-12"
         >
-          <Button className="bg-foreground text-background hover:bg-foreground/90 px-8">
-            Save Preferences
+          <Button 
+          onClick={handleSavePreferences} 
+          disabled={isSaving}
+          className="bg-foreground text-background hover:bg-foreground/90 px-8">
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Preferences"}
           </Button>
         </motion.div>
       </div>
     </MainLayout>
+
+    
   );
 }
+
+
+
