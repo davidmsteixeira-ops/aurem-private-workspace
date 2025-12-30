@@ -6,66 +6,6 @@ import { Decision } from '@/types/decisions';
 
 type DecisionStatus = 'aligned' | 'partial' | 'not-aligned';
 
-interface Decision2 {
-  id: string;
-  title: string;
-  status: DecisionStatus;
-  rationale: string;
-  date: string;
-  category: string;
-}
-
-const decisions: Decision2[] = [
-  {
-    id: '1',
-    title: 'Website Redesign: Prioritize Material Storytelling',
-    status: 'aligned',
-    rationale: 'Research indicated that 78% of architectural decision-makers are influenced more by material narrative than technical specifications alone. The new approach leads with transformation stories.',
-    date: 'December 22, 2024',
-    category: 'Digital Presence',
-  },
-  {
-    id: '2',
-    title: 'Trade Show Strategy: Focus on Design-Led Events',
-    status: 'aligned',
-    rationale: 'Exiting general construction trade shows aligns with premium positioning. Milan Design Week and Venice Biennale attendance reinforces exclusivity.',
-    date: 'December 18, 2024',
-    category: 'Brand Activation',
-  },
-  {
-    id: '3',
-    title: 'Social Media Presence: Instagram-Only Strategy',
-    status: 'partial',
-    rationale: 'While visual platform aligns with brand, LinkedIn presence for B2B architects may still be valuable. Recommend minimal, high-quality LinkedIn content.',
-    date: 'December 15, 2024',
-    category: 'Digital Presence',
-  },
-  {
-    id: '4',
-    title: 'Pricing: Remove from Comparison Platforms',
-    status: 'aligned',
-    rationale: 'Fungisteel is not competing on price. Value proposition requires direct consultation. This decision reinforces premium positioning.',
-    date: 'December 10, 2024',
-    category: 'Commercial Strategy',
-  },
-  {
-    id: '5',
-    title: 'Sustainability Messaging: Lead with Innovation',
-    status: 'aligned',
-    rationale: 'Brand voice emphasizes quiet confidence. Environmental benefits are demonstrated through excellence rather than stated as primary value proposition.',
-    date: 'December 5, 2024',
-    category: 'Communications',
-  },
-  {
-    id: '6',
-    title: 'Partnership with Mass-Market Retailer',
-    status: 'not-aligned',
-    rationale: 'Proposed partnership would dilute premium positioning. Recommendation: Decline opportunity despite revenue potential to maintain brand integrity.',
-    date: 'November 28, 2024',
-    category: 'Commercial Strategy',
-  },
-];
-
 const statusConfig = {
   aligned: {
     label: 'Aligned',

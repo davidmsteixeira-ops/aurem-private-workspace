@@ -9,6 +9,11 @@ import BrandIntelligence from "./pages/BrandIntelligence";
 import Decisions from "./pages/Decisions";
 import Assets from "./pages/Assets";
 import Settings from "./pages/Settings";
+import ProfileSettings from "./pages/settings/ProfileSettings";
+import NotificationsSettings from "./pages/settings/NotificationsSettings";
+import SecuritySettings from "./pages/settings/SecuritySettings";
+import DocumentsSettings from "./pages/settings/DocumentsSettings";
+import SupportSettings from "./pages/settings/SupportSettings";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/AuthProvider";
 import Login from "./pages/Login";
@@ -28,10 +33,14 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/brand-vault" element={<BrandVault />} />
           <Route path="/brand-intelligence" element={<BrandIntelligence />} />
-          {/* <Route path="/decisions" element={<Decisions />} /> */}
           <Route path="/decisions" element={<ProtectedRoute><Decisions /></ProtectedRoute>} />
           <Route path="/assets" element={<Assets />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/profile" element={<ProfileSettings />} />
+          <Route path="/settings/notifications" element={<NotificationsSettings />} />
+          <Route path="/settings/security" element={<SecuritySettings />} />
+          <Route path="/settings/documents" element={<DocumentsSettings />} />
+          <Route path="/settings/support" element={<SupportSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
