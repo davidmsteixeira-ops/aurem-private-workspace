@@ -6,116 +6,136 @@ import { cn } from '@/lib/utils';
 import { getAuthInfo } from '@/hooks/UserInfo';
 import { createClient } from '@supabase/supabase-js'
 import { UploadAssetModal } from '@/components/UploadAssetModal';
+import { getAssetsInfo } from '@/hooks/AssetsInfo';
 
-type AssetType = 'document' | 'image' | 'video' | 'other';
 
-interface Asset {
-  id: string;
-  name: string;
-  type: AssetType;
-  category: string;
-  size: string;
-  lastModified: string;
+// type AssetType = 'document' | 'image' | 'video' | 'other';
+
+// interface Asset {
+//   id: string;
+//   name: string;
+//   type: AssetType;
+//   category: string;
+//   size: string;
+//   lastModified: string;
+// }
+
+// const assets: Asset[] = [
+//   {
+//     id: '1',
+//     name: 'Brand Guidelines v3.2',
+//     type: 'document',
+//     category: 'Brand Rules',
+//     size: '24.5 MB',
+//     lastModified: 'December 20, 2024',
+//   },
+//   {
+//     id: '2',
+//     name: 'Logo Suite — Primary',
+//     type: 'image',
+//     category: 'Visual Identity',
+//     size: '8.2 MB',
+//     lastModified: 'December 18, 2024',
+//   },
+//   {
+//     id: '3',
+//     name: 'Logo Suite — Reversed',
+//     type: 'image',
+//     category: 'Visual Identity',
+//     size: '8.4 MB',
+//     lastModified: 'December 18, 2024',
+//   },
+//   {
+//     id: '4',
+//     name: 'Typography License — Canela',
+//     type: 'document',
+//     category: 'Visual Identity',
+//     size: '1.2 MB',
+//     lastModified: 'December 15, 2024',
+//   },
+//   {
+//     id: '5',
+//     name: 'Material Photography Collection',
+//     type: 'image',
+//     category: 'Assets',
+//     size: '456 MB',
+//     lastModified: 'December 12, 2024',
+//   },
+//   {
+//     id: '6',
+//     name: 'Brand Film — 60s Cut',
+//     type: 'video',
+//     category: 'Assets',
+//     size: '284 MB',
+//     lastModified: 'December 10, 2024',
+//   },
+//   {
+//     id: '7',
+//     name: 'Presentation Template — Keynote',
+//     type: 'document',
+//     category: 'Assets',
+//     size: '45.8 MB',
+//     lastModified: 'December 8, 2024',
+//   },
+//   {
+//     id: '8',
+//     name: 'Presentation Template — PowerPoint',
+//     type: 'document',
+//     category: 'Assets',
+//     size: '48.2 MB',
+//     lastModified: 'December 8, 2024',
+//   },
+//   {
+//     id: '9',
+//     name: 'Social Media Templates',
+//     type: 'image',
+//     category: 'Assets',
+//     size: '32.5 MB',
+//     lastModified: 'December 5, 2024',
+//   },
+//   {
+//     id: '10',
+//     name: 'Brand Strategy Document',
+//     type: 'document',
+//     category: 'Brand Strategy',
+//     size: '2.8 MB',
+//     lastModified: 'December 1, 2024',
+//   },
+//   {
+//     id: '11',
+//     name: 'Positioning Framework',
+//     type: 'document',
+//     category: 'Positioning',
+//     size: '1.4 MB',
+//     lastModified: 'November 28, 2024',
+//   },
+//   {
+//     id: '12',
+//     name: 'Trade Show Booth Specifications',
+//     type: 'document',
+//     category: 'Assets',
+//     size: '18.6 MB',
+//     lastModified: 'November 25, 2024',
+//   },
+// ];
+
+export function formatLongDate(
+  date: string | null,
+  locale = 'en-US'
+) {
+  if (!date) return '—';
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(date));
 }
 
-const assets: Asset[] = [
-  {
-    id: '1',
-    name: 'Brand Guidelines v3.2',
-    type: 'document',
-    category: 'Brand Rules',
-    size: '24.5 MB',
-    lastModified: 'December 20, 2024',
-  },
-  {
-    id: '2',
-    name: 'Logo Suite — Primary',
-    type: 'image',
-    category: 'Visual Identity',
-    size: '8.2 MB',
-    lastModified: 'December 18, 2024',
-  },
-  {
-    id: '3',
-    name: 'Logo Suite — Reversed',
-    type: 'image',
-    category: 'Visual Identity',
-    size: '8.4 MB',
-    lastModified: 'December 18, 2024',
-  },
-  {
-    id: '4',
-    name: 'Typography License — Canela',
-    type: 'document',
-    category: 'Visual Identity',
-    size: '1.2 MB',
-    lastModified: 'December 15, 2024',
-  },
-  {
-    id: '5',
-    name: 'Material Photography Collection',
-    type: 'image',
-    category: 'Assets',
-    size: '456 MB',
-    lastModified: 'December 12, 2024',
-  },
-  {
-    id: '6',
-    name: 'Brand Film — 60s Cut',
-    type: 'video',
-    category: 'Assets',
-    size: '284 MB',
-    lastModified: 'December 10, 2024',
-  },
-  {
-    id: '7',
-    name: 'Presentation Template — Keynote',
-    type: 'document',
-    category: 'Assets',
-    size: '45.8 MB',
-    lastModified: 'December 8, 2024',
-  },
-  {
-    id: '8',
-    name: 'Presentation Template — PowerPoint',
-    type: 'document',
-    category: 'Assets',
-    size: '48.2 MB',
-    lastModified: 'December 8, 2024',
-  },
-  {
-    id: '9',
-    name: 'Social Media Templates',
-    type: 'image',
-    category: 'Assets',
-    size: '32.5 MB',
-    lastModified: 'December 5, 2024',
-  },
-  {
-    id: '10',
-    name: 'Brand Strategy Document',
-    type: 'document',
-    category: 'Brand Strategy',
-    size: '2.8 MB',
-    lastModified: 'December 1, 2024',
-  },
-  {
-    id: '11',
-    name: 'Positioning Framework',
-    type: 'document',
-    category: 'Positioning',
-    size: '1.4 MB',
-    lastModified: 'November 28, 2024',
-  },
-  {
-    id: '12',
-    name: 'Trade Show Booth Specifications',
-    type: 'document',
-    category: 'Assets',
-    size: '18.6 MB',
-    lastModified: 'November 25, 2024',
-  },
-];
+const handleAssetAction = (link: string) => {
+  window.open(link, '_blank');
+  return;
+};
 
 const typeIcons = {
   document: FileText,
@@ -137,7 +157,8 @@ export default function Assets() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false); // NOVO ESTADO
-    const {userInfo, loading} = getAuthInfo();
+  const {userInfo, loading} = getAuthInfo();
+  const assets = getAssetsInfo();
   
 
   const filteredAssets = selectedCategory === 'All'
@@ -253,7 +274,7 @@ export default function Assets() {
                 </thead>
                 <tbody>
                   {filteredAssets.map((asset, index) => {
-                    const Icon = typeIcons[asset.type];
+                    const Icon = typeIcons[asset.storage_type];
                     return (
                       <motion.tr
                         key={asset.id}
@@ -284,12 +305,12 @@ export default function Assets() {
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm text-muted-foreground">
-                            {asset.lastModified}
+                            {formatLongDate(asset.created_at)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <button className="p-2 hover:bg-accent rounded-sm transition-colors duration-200">
-                            <Download className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+                          <button onClick={() => handleAssetAction(asset.download_link)} className="p-2 hover:bg-accent rounded-sm transition-colors duration-200">
+                            <Download  className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
                           </button>
                         </td>
                       </motion.tr>
@@ -301,7 +322,7 @@ export default function Assets() {
           ) : (
             <div className="grid grid-cols-3 gap-4">
               {filteredAssets.map((asset, index) => {
-                const Icon = typeIcons[asset.type];
+                const Icon = typeIcons[asset.storage_type];
                 return (
                   <motion.div
                     key={asset.id}
@@ -314,7 +335,7 @@ export default function Assets() {
                       <div className="p-3 bg-accent rounded-sm">
                         <Icon className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
                       </div>
-                      <button className="p-2 opacity-0 group-hover:opacity-100 hover:bg-accent rounded-sm transition-all duration-200">
+                      <button onClick={() => handleAssetAction(asset.download_link)} className="p-2 opacity-0 group-hover:opacity-100 hover:bg-accent rounded-sm transition-all duration-200">
                         <Download className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
                       </button>
                     </div>
@@ -326,7 +347,7 @@ export default function Assets() {
                     </p>
                     <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{asset.size}</span>
-                      <span className="text-xs text-muted-foreground">{asset.lastModified}</span>
+                      <span className="text-xs text-muted-foreground">{formatLongDate(asset.created_at)}</span>
                     </div>
                   </motion.div>
                 );

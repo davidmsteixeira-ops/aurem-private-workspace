@@ -14,6 +14,7 @@ type UserInfo = {
   client_id: number;
   client_name: string;
   client_status: string;
+  client_driver_folder_id: string;
 };
 
 
@@ -49,6 +50,6 @@ export function getAuthInfo() {
         setLoading(false);
     }
 
-    const userInfo: UserInfo = userName && clientName ? {user_id: userName.id, name: userName.name, email: userName.email, role: userName.role, client_id: clientName.id, client_name: clientName.name, client_status: clientName.status} : null;
+    const userInfo: UserInfo = userName && clientName ? {user_id: userName.id, name: userName.name, email: userName.email, role: userName.role, client_id: clientName.id, client_name: clientName.name, client_status: clientName.status, client_driver_folder_id: clientName.drive_folder_id} : null;
   return {userInfo, loading};
 };

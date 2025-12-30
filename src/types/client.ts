@@ -5,4 +5,5 @@ export type Client = {
   default_language: string;
   logo_url: string;
   created_at: string;
+  drive_folder_id: string;
 };

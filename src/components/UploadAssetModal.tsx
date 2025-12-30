@@ -16,7 +16,7 @@ interface UploadAssetModalProps {
 export const UploadAssetModal = ({ isOpen, onClose, categories }: UploadAssetModalProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [category, setCategory] = useState(categories[1]); // Default para a primeira categoria real
+  const [category, setCategory] = useState(categories[1]); // Defaul  t para a primeira categoria real
   const {userInfo, loading} = getAuthInfo();
 
   const handleDrag = (e: React.DragEvent) => {
@@ -38,9 +38,11 @@ export const UploadAssetModal = ({ isOpen, onClose, categories }: UploadAssetMod
   const [isUploading, setIsUploading] = useState(false);
   const clientID = userInfo?.client_id;
   const userID = userInfo?.user_id;
+  const driver_folder_id = userInfo?.client_driver_folder_id;
+
 
 const handleUpload = async () => {
-  if (!selectedFile || !clientID || !userID) return;
+  if (!selectedFile || !clientID || !userID || !driver_folder_id) return;
   const { data: { session } } = await supabase.auth.getSession();
   
   setIsUploading(true);
@@ -54,6 +56,7 @@ const handleUpload = async () => {
     formData.append('client_id', String(clientID));
     formData.append('name', selectedFile.name);
     formData.append('user_id', String(userID));
+    formData.append('driver_folder_id', driver_folder_id);
 
     // 2. Chamar a Edge Function do Supabase
     const { data, error } = await supabase.functions.invoke('hello-world', {
