@@ -7,6 +7,7 @@ import { Client } from '@/types/client';
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
 type UserInfo = {
+  user_id: number;
   name: string;
   email: string;
   role: string;
@@ -48,6 +49,6 @@ export function getAuthInfo() {
         setLoading(false);
     }
 
-    const userInfo: UserInfo = userName && clientName ? {name: userName.name, email: userName.email, role: userName.role, client_id: clientName.id, client_name: clientName.name, client_status: clientName.status} : null;
+    const userInfo: UserInfo = userName && clientName ? {user_id: userName.id, name: userName.name, email: userName.email, role: userName.role, client_id: clientName.id, client_name: clientName.name, client_status: clientName.status} : null;
   return {userInfo, loading};
 };

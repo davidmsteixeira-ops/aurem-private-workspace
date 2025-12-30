@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import { FileText, Image, Film, File, Download, Grid, List } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { cn } from '@/lib/utils';
+import { getAuthInfo } from '@/hooks/UserInfo';
+import { createClient } from '@supabase/supabase-js'
+import { UploadAssetModal } from '@/components/UploadAssetModal';
 
 type AssetType = 'document' | 'image' | 'video' | 'other';
 
@@ -133,6 +136,9 @@ const categories = [
 export default function Assets() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false); // NOVO ESTADO
+    const {userInfo, loading} = getAuthInfo();
+  
 
   const filteredAssets = selectedCategory === 'All'
     ? assets
@@ -151,10 +157,25 @@ export default function Assets() {
           <h1 className="font-serif text-4xl text-foreground tracking-tight mb-3">
             Assets
           </h1>
+
+          <div className="flex items-center justify-between mb-8">
           <p className="text-muted-foreground">
             Curated brand materials and documentation
           </p>
+
+          <button onClick={() => setIsUploadModalOpen(true)} className='px-4 py-2 text-sm rounded-sm transition-colors duration-200 bg-primary text-primary-foreground'>Upload Asset</button>
+
+          </div>
         </motion.div>
+
+        {/* Modal Component */}
+        <UploadAssetModal 
+          isOpen={isUploadModalOpen} 
+          onClose={() => setIsUploadModalOpen(false)} 
+          categories={categories}
+        />
+
+        
 
         {/* Filters & View Toggle */}
         <motion.div
@@ -322,9 +343,11 @@ export default function Assets() {
           className="mt-8 pt-6 border-t border-border"
         >
           <p className="text-xs text-muted-foreground">
-            {filteredAssets.length} assets · For additional materials, contact your brand liaison
+            {filteredAssets.length} assets · For additional materials, contact your brand chief
           </p>
         </motion.div>
+              
+
       </div>
     </MainLayout>
   );
