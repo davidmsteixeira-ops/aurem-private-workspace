@@ -95,8 +95,6 @@ export function getNotificationsInfo() {
     }
   }
 
-  console.log("Testing the first element, ", notificationEntries[0]?.is_checked);
-
 
   const notificationEntriesInfo: NotificationInfo[] = notificationEntries.map(
   (entry): NotificationInfo => ({

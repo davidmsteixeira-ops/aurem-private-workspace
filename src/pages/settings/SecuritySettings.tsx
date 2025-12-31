@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Shield, Key, Smartphone, Clock, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -5,6 +6,11 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { ChangePasswordDialog } from '@/components/settings/ChangePasswordDialog';
+import { TwoFactorAuthDialog } from '@/components/settings/TwoFactorAuthDialog';
+import { RecoveryCodesDialog } from '@/components/settings/RecoveryCodesDialog';
+import { ActivityLogDialog } from '@/components/settings/ActivityLogDialog';
+import { getAuthInfo } from '@/hooks/UserInfo';
 
 const accessLogs = [
   {
@@ -30,7 +36,27 @@ const accessLogs = [
   },
 ];
 
+export function formatLongDate(
+  date: string | null,
+  locale = 'en-US'
+) {
+  if (!date) return '—';
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date(date));
+}
+
 export default function SecuritySettings() {
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showTwoFactorDialog, setShowTwoFactorDialog] = useState(false);
+  const [showRecoveryCodesDialog, setShowRecoveryCodesDialog] = useState(false);
+  const [showActivityLogDialog, setShowActivityLogDialog] = useState(false);
+  const {userInfo, loading: loadingAuth} = getAuthInfo();
+  const [is2FAEnabled] = useState(true);
+
   return (
     <MainLayout>
       <div className="p-12 max-w-2xl">
@@ -72,9 +98,13 @@ export default function SecuritySettings() {
             <div className="flex-1">
               <h2 className="font-medium text-foreground mb-1">Password</h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Last changed 45 days ago. We recommend updating your password regularly.
+                Last changed {formatLongDate(userInfo?.password_updated_at)}. We recommend updating your password regularly.
               </p>
-              <Button variant="outline" className="border-border hover:bg-accent">
+              <Button 
+                variant="outline" 
+                className="border-border hover:bg-accent"
+                onClick={() => setShowPasswordDialog(true)}
+              >
                 Change Password
               </Button>
             </div>
@@ -103,10 +133,18 @@ export default function SecuritySettings() {
                 Your account is protected with authenticator app verification.
               </p>
               <div className="flex gap-3">
-                <Button variant="outline" className="border-border hover:bg-accent">
+                <Button 
+                  variant="outline" 
+                  className="border-border hover:bg-accent"
+                  onClick={() => setShowTwoFactorDialog(true)}
+                >
                   Manage 2FA
                 </Button>
-                <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                <Button 
+                  variant="ghost" 
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowRecoveryCodesDialog(true)}
+                >
                   View Recovery Codes
                 </Button>
               </div>
@@ -166,10 +204,33 @@ export default function SecuritySettings() {
             ))}
           </div>
 
-          <Button variant="outline" className="mt-6 border-border hover:bg-accent">
+          <Button 
+            variant="outline" 
+            className="mt-6 border-border hover:bg-accent"
+            onClick={() => setShowActivityLogDialog(true)}
+          >
             View Full Activity Log
           </Button>
         </motion.div>
+
+        {/* Dialogs */}
+        <ChangePasswordDialog 
+          isOpen={showPasswordDialog} 
+          onClose={() => setShowPasswordDialog(false)} 
+        />
+        <TwoFactorAuthDialog 
+          isOpen={showTwoFactorDialog} 
+          onClose={() => setShowTwoFactorDialog(false)}
+          isEnabled={is2FAEnabled}
+        />
+        <RecoveryCodesDialog 
+          isOpen={showRecoveryCodesDialog} 
+          onClose={() => setShowRecoveryCodesDialog(false)} 
+        />
+        <ActivityLogDialog 
+          isOpen={showActivityLogDialog} 
+          onClose={() => setShowActivityLogDialog(false)} 
+        />
       </div>
     </MainLayout>
   );

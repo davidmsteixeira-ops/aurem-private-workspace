@@ -14,6 +14,9 @@ import NotificationsSettings from "./pages/settings/NotificationsSettings";
 import SecuritySettings from "./pages/settings/SecuritySettings";
 import DocumentsSettings from "./pages/settings/DocumentsSettings";
 import SupportSettings from "./pages/settings/SupportSettings";
+import Portfolio from "./pages/admin/Portfolio";
+import IntelligencePulse from "./pages/admin/IntelligencePulse";
+import StrategicPipeline from "./pages/admin/StrategicPipeline";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/AuthProvider";
 import Login from "./pages/Login";
@@ -41,6 +44,10 @@ const App = () => (
           <Route path="/settings/security" element={<SecuritySettings />} />
           <Route path="/settings/documents" element={<DocumentsSettings />} />
           <Route path="/settings/support" element={<SupportSettings />} />
+          {/* Admin Routes */}
+          <Route path="/admin/portfolio" element={<Portfolio />} />
+          <Route path="/admin/intelligence" element={<IntelligencePulse />} />
+          <Route path="/admin/pipeline" element={<StrategicPipeline />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

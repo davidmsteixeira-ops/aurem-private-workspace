@@ -3,7 +3,7 @@ import { Home, Archive, Sparkles, ListChecks, FolderOpen, Settings, Briefcase, B
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const clientNavigationItems = [
+const navigationItems = [
   { name: 'Private Office', href: '/', icon: Home },
   { name: 'Brand Vault', href: '/brand-vault', icon: Archive },
   { name: 'Brand Intelligence', href: '/brand-intelligence', icon: Sparkles },
@@ -12,44 +12,16 @@ const clientNavigationItems = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-const adminNavigationItems = [
-  { name: 'Portfolio', href: '/admin/portfolio', icon: Briefcase },
-  { name: 'Intelligence Pulse', href: '/admin/intelligence', icon: Brain },
-  { name: 'Strategic Pipeline', href: '/admin/pipeline', icon: GitBranch },
-  { name: 'Settings', href: '/settings', icon: Settings },
-];
-
-interface SidebarProps {
-  isAdmin?: boolean;
-}
-
-export function Sidebar({ isAdmin = false }: SidebarProps) {
+export function Sidebar() {
   const location = useLocation();
-  const navigationItems = isAdmin ? adminNavigationItems : clientNavigationItems;
 
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col">
-      {/* Admin Badge */}
-      {isAdmin && (
-        <div className="px-6 pt-6 pb-2">
-          <div className="flex items-center gap-2 px-3 py-2 bg-foreground/5 rounded-sm border border-foreground/10">
-            <Shield className="w-4 h-4 text-foreground/60" strokeWidth={1.5} />
-            <span className="text-2xs uppercase tracking-widest text-foreground/60">
-              Architect's Suite
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Navigation */}
       <nav className="flex-1 px-4 py-8">
         <ul className="space-y-1">
           {navigationItems.map((item) => {
-            const isActive = isAdmin 
-              ? location.pathname.startsWith(item.href) && item.href !== '/settings'
-                ? true
-                : location.pathname === item.href
-              : location.pathname === item.href;
+            const isActive = location.pathname === item.href;
             const Icon = item.icon;
 
             return (
@@ -83,7 +55,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
       {/* Footer */}
       <div className="px-6 py-6 border-t border-sidebar-border">
         <p className="text-2xs uppercase tracking-wide-luxury text-muted-foreground">
-          {isAdmin ? "Architect's Suite" : 'Private Office'}
+          Private Office
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           Aurem © 2024
