@@ -9,6 +9,7 @@ type GroupedNotification = {
   group_id: number;
   group_title: string;
   group_description: string;
+  group_default: boolean;
   notifications: NotificationEntry[];
 };
 
@@ -35,6 +36,7 @@ type NotificationInfo = {
   group_id: number;
   group_title: string;
   group_description: string;
+  group_default: boolean;
 };
 
 function groupNotifications(
@@ -43,26 +45,28 @@ function groupNotifications(
   const groups = rows.reduce<Record<number, GroupedNotification>>(
     (acc, row) => {
       const groupId = row.notification_group_id;
-
-      if (!acc[groupId]) {
-        acc[groupId] = {
-          group_id: groupId,
-          group_title: row.group_title,
-          group_description: row.group_description,
-          notifications: [],
-        };
+      if(row.group_default) {
+        if (!acc[groupId]) {
+          acc[groupId] = {
+            group_id: groupId,
+            group_title: row.group_title,
+            group_description: row.group_description,
+            group_default: row.group_default,
+            notifications: [],
+          };
+        }
+        
+        acc[groupId].notifications.push({
+          id: row.id,
+          notification_group_id: row.notification_group_id,
+          user_id: row.user_id,
+          label: row.label,
+          description: row.description,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          checked: row.checked,
+        });
       }
-
-      acc[groupId].notifications.push({
-        id: row.id,
-        notification_group_id: row.notification_group_id,
-        user_id: row.user_id,
-        label: row.label,
-        description: row.description,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        checked: row.checked,
-      });
 
       return acc;
     },
@@ -82,26 +86,32 @@ export function getNotificationsInfo() {
 
   async function getNotEntries(userID: number): Promise<void> {
     if(userID) {
-      const {data} = await supabase.from('notification_entries').select('id, notification_group_id, user_id, label, description, created_at, updated_at, checked, section:notification_groups(title, description)').eq("user_id", userID).order('section(title)', {ascending: true});
+      console.log("User_id:", userID);
+      const {data} = await supabase.from('notification_user_checks').select('id, user_id, notification_entry_id, is_checked, created_at, updated_at, section:notification_entries(id, notification_group_id, label, description, section2:notification_groups(id, title, description, is_default))').eq("user_id", userID);
+
       setNotificationEntries(data);
     } else {
       return;
     }
   }
 
+  console.log("Testing the first element, ", notificationEntries[0]?.is_checked);
+
+
   const notificationEntriesInfo: NotificationInfo[] = notificationEntries.map(
   (entry): NotificationInfo => ({
       id: entry.id,
-      notification_group_id: entry.notification_group_id,
+      notification_group_id: entry.section.notification_group_id,
       user_id: entry.user_id,
-      label: entry.label,
-      description: entry.description,
+      label: entry.section.label,
+      description: entry.section.description,
       created_at: entry.created_at,
       updated_at: entry.updated_at,
-      checked: entry.checked,
-      group_id: entry.section.id,
-      group_title: entry.section.title,
-      group_description: entry.section.description,
+      checked: entry.is_checked,
+      group_id: entry.section.section2.id,
+      group_title: entry.section.section2.title,
+      group_description: entry.section.section2.description,
+      group_default: entry.section.section2.is_default,
   })
 );
   return groupNotifications(notificationEntriesInfo);

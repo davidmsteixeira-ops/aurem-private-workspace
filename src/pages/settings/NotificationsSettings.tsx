@@ -72,14 +72,14 @@ export default function NotificationsSettings() {
       // Vamos iterar sobre o objeto localSettings e atualizar cada linha
       const updates = Object.entries(localSettings).map(([id, checked]) => ({
         id: Number(id),
-        checked: checked,
+        is_checked: checked,
         updated_at: new Date().toISOString(),
       }));
 
       // No Supabase, podemos usar o .upsert para atualizar várias linhas de uma vez
       // desde que o 'id' esteja presente para fazer o match
       const { error } = await supabase
-        .from('notification_entries') // Substitua pelo nome real da sua tabela
+        .from('notification_user_checks') // Substitua pelo nome real da sua tabela
         .upsert(updates);
 
       if (error) throw error;
