@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { getAuthInfo } from '@/hooks/UserInfo';
 
 const documents = [
   {
@@ -80,6 +83,46 @@ const documents = [
 ];
 
 export default function DocumentsSettings() {
+  const { userInfo, loading: loadingAuth } = getAuthInfo();
+  const [groupedDocs, setGroupedDocs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+      if (userInfo) fetchDocuments();
+    }, [userInfo]);
+  
+    const fetchDocuments = async () => {
+      setIsLoading(true);
+      
+      // Procura documentos que sejam OU gerais OU específicos deste cliente
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .or(`is_general.eq.true,client_id.eq.${userInfo.client_id}`)
+        .order('category', { ascending: true });
+  
+      if (data) {
+        // Agrupar por categoria para o layout
+        const groups = data.reduce((acc: any, doc) => {
+          const category = doc.category;
+          if (!acc[category]) acc[category] = [];
+          acc[category].push(doc);
+          return acc;
+        }, {});
+        
+        const formattedGroups = Object.keys(groups).map(key => ({
+          category: key,
+          items: groups[key]
+        }));
+        
+        setGroupedDocs(formattedGroups);
+      }
+      setIsLoading(false);
+    };
+  
+    if (loadingAuth || isLoading) return <div className="p-12 font-serif italic">Consulting the vault...</div>;
+
+
   return (
     <MainLayout>
       <div className="p-12 max-w-2xl">

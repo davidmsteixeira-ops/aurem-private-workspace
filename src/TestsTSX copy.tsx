@@ -1,191 +1,87 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { formatDistanceToNow } from 'date-fns'; // Opcional para "2 hours ago"
-import { enUS } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, MapPin, Monitor, Smartphone, Tablet, Globe, Filter } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
 import { getAuthInfo } from '@/hooks/UserInfo';
-import { getAccessLogs } from '@/hooks/AccessLogsInfo';
+// ... outros imports
 
-
-
-// ... (seus imports de ícones e UI permanecem iguais)
-interface ActivityLogDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-type ActivityType = 'login' | 'logout' | 'password_change' | '2fa_enabled' | '2fa_disabled' | 'session_revoked';
-
-interface ActivityItem {
-  id: number;
-  type: ActivityType;
-  device: string;
-  deviceType: 'desktop' | 'mobile' | 'tablet';
-  browser: string;
-  location: string;
-  ip: string;
-  timestamp: string;
-  date: string;
-}
-
-const getActivityLabel = (type: ActivityType): string => {
-  switch (type) {
-    case 'login':
-      return 'Signed in';
-    case 'logout':
-      return 'Signed out';
-    case 'password_change':
-      return 'Password changed';
-    case '2fa_enabled':
-      return '2FA enabled';
-    case '2fa_disabled':
-      return '2FA disabled';
-    case 'session_revoked':
-      return 'Session revoked';
-    default:
-      return 'Activity';
-  }
-};
-
-const getDeviceIcon = (deviceType: 'desktop' | 'mobile' | 'tablet') => {
-  switch (deviceType) {
-    case 'desktop':
-      return <Monitor className="w-4 h-4" strokeWidth={1.5} />;
-    case 'mobile':
-      return <Smartphone className="w-4 h-4" strokeWidth={1.5} />;
-    case 'tablet':
-      return <Tablet className="w-4 h-4" strokeWidth={1.5} />;
-  }
-};
-
-export function ActivityLogDialog({ isOpen, onClose }: ActivityLogDialogProps) {
-  const [filter, setFilter] = useState<ActivityType | 'all'>('all');
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
+export default function DocumentsSettings() {
+  const { userInfo, loading: loadingAuth } = getAuthInfo();
+  const [groupedDocs, setGroupedDocs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchActivityLog();
-    }
-  }, [isOpen, filter]);
+    if (userInfo) fetchDocuments();
+  }, [userInfo]);
 
-  const fetchActivityLog = async () => {
+  const fetchDocuments = async () => {
     setIsLoading(true);
-    let query = supabase
-      .from('user_activity')
+    
+    // Procura documentos que sejam OU gerais OU específicos deste cliente
+    const { data, error } = await supabase
+      .from('documents')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (filter !== 'all') {
-      query = query.eq('type', filter);
-    }
-
-    const { data, error } = await query;
+      .or(`is_general.eq.true,client_id.eq.${userInfo.client_id}`)
+      .order('category', { ascending: true });
 
     if (data) {
-      const formattedData = data.map(item => ({
-        id: item.id,
-        type: item.type as ActivityType,
-        device: item.device_name,
-        deviceType: item.device_type,
-        browser: item.browser,
-        location: item.location,
-        ip: item.ip_address,
-        timestamp: formatDistanceToNow(new Date(item.created_at), { addSuffix: true }),
-        date: new Date(item.created_at).toLocaleDateString('en-US', { 
-          month: 'long', day: 'numeric', year: 'numeric' 
-        })
+      // Agrupar por categoria para o layout
+      const groups = data.reduce((acc: any, doc) => {
+        const category = doc.category;
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(notif);
+        return acc;
+      }, {});
+      
+      const formattedGroups = Object.keys(groups).map(key => ({
+        category: key,
+        items: groups[key]
       }));
-      setActivities(formattedData);
+      
+      setGroupedDocs(formattedGroups);
     }
     setIsLoading(false);
   };
 
-  // Agrupamento por data (mesma lógica que já tinha, mas usando o estado 'activities')
-  const groupedLog = activities.reduce((acc, item) => {
-    if (!acc[item.date]) acc[item.date] = [];
-    acc[item.date].push(item);
-    return acc;
-  }, {} as Record<string, ActivityItem[]>);
+  if (loadingAuth || isLoading) return <div className="p-12 font-serif italic">Consulting the vault...</div>;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop e Modal permanecem iguais... */}
-          
-          <div className="flex-1 overflow-y-auto p-6">
-            {isLoading ? (
-              <div className="h-40 flex items-center justify-center font-serif italic text-neutral-400">
-                Retrieving security ledger...
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {Object.keys(groupedLog).length === 0 ? (
-                  <p className="text-center text-neutral-400 py-10">No records found.</p>
-                ) : (
-                  Object.entries(groupedLog).map(([date, items]) => (
-                    <div key={date}>
-                      <h3 className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 mb-4">{date}</h3>
-                      <div className="space-y-4">
-                       {items.map((item) => (
-                          <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-4 bg-card border border-border rounded-sm"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-4">
-                                <div className="p-2 bg-accent rounded-sm">
-                                  {getDeviceIcon(item.deviceType)}
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium text-foreground">
-                                      {getActivityLabel(item.type)}
-                                    </p>
-                                    <Badge variant="outline" className="text-xs">
-                                      {item.device}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <Globe className="w-3 h-3" />
-                                      {item.browser}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3" />
-                                      {item.location}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground/70">
-                                    IP: {item.ip}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                {item.timestamp}
-                              </span>
-                            </div>
-                          </motion.div>
-                        ))}
+    <MainLayout>
+      <div className="p-12 max-w-2xl">
+        {/* Header permanece igual */}
+
+        <div className="space-y-10">
+          {groupedDocs.map((group, groupIndex) => (
+            <motion.div key={group.category} {...animationProps}>
+              <h2 className="font-serif text-xl text-foreground mb-6">{group.category}</h2>
+              <div className="space-y-4">
+                {group.items.map((doc) => (
+                  <div key={doc.id} className="flex items-start justify-between p-5 bg-card border border-border rounded-sm">
+                    <div className="flex items-start gap-4">
+                      <FileText className="w-5 h-5 text-neutral-400" />
+                      <div>
+                        <h3 className="font-medium text-foreground">{doc.title}</h3>
+                        <p className="text-sm text-muted-foreground">{doc.description}</p>
+                        <p className="text-[10px] mt-2 uppercase tracking-widest text-neutral-400">
+                          {doc.is_signed ? "Status: Executed" : "Status: Review Required"}
+                        </p>
                       </div>
                     </div>
-                  ))
-                )}
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => window.open(doc.google_drive_link, '_blank')}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-          
-          {/* Footer permanece igual... */}
-        </>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </MainLayout>
   );
 }
