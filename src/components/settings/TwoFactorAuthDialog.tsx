@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/lib/supabase'; // Importe seu cliente aqui
+import { toast } from 'sonner';
+import { getAuthInfo } from '@/hooks/UserInfo';
+
+
 
 interface TwoFactorAuthDialogProps {
   isOpen: boolean;
@@ -17,24 +22,138 @@ type Step = 'overview' | 'setup' | 'verify' | 'complete' | 'disable';
 export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAuthDialogProps) {
   const [step, setStep] = useState<Step>('overview');
   const [verificationCode, setVerificationCode] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const {userInfo, loading: loadingAuth} = getAuthInfo();
+
 
   // Mock QR code secret
   const mockSecret = 'JBSW Y3DP EHPK 3PXP';
   const mockQRData = 'otpauth://totp/Aurem:client@fungisteel.com?secret=JBSWY3DPEHPK3PXP&issuer=Aurem';
 
+  // Estados para dados reais do Supabase
+  const [factorId, setFactorId] = useState('');
+  const [qrCodeSvg, setQrCodeSvg] = useState(''); // O Supabase retorna o SVG pronto
+  const [secret, setSecret] = useState('');
+
+  // 1. Iniciar o processo de Inscrição (Enroll)
+  const handleStartSetup = async () => {
+    setIsProcessing(true);
+
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        issuer: 'Aurem Private Office'
+      });
+
+      if (error) throw error;
+
+      setFactorId(data.id);
+      setQrCodeSvg(data.totp.qr_code); // SVG gerado pelo Supabase
+      setSecret(data.totp.secret);
+      setStep('setup');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 2. Verificar e Finalizar (Verify)
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+
+    try {
+      // Primeiro criamos um desafio (challenge) para o fator recém-criado
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: factorId
+      });
+
+      if (challengeError) throw challengeError;
+
+      // Depois verificamos o código fornecido pelo utilizador
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: factorId,
+        challengeId: challengeData.id,
+        code: verificationCode
+      });
+
+      if (verifyError) throw verifyError;
+
+      setStep('complete');
+      toast.success("MFA Enabled Successfully");
+      
+      if(userInfo) {
+        const { data } = await supabase.from('users').update({mfa_enabled: true}).eq('id', userInfo.user_id);
+      }
+
+      // Refresh de luxo com delay de 1.5s
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+
+    } catch (err: any) {
+      toast.error("Invalid code. Please try again.");
+      setVerificationCode('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 3. Desativar MFA (Disable)
+  const handleDisableMFA = async () => {
+    setIsProcessing(true);
+    try {
+      // Listamos os fatores ativos
+      const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+
+      console.log("ALL: ", factors);
+      if (listError) throw listError;
+
+      const totpFactor = factors.totp.find(f => f.status === 'verified');
+      
+      if (totpFactor) {
+        const { error } = await supabase.auth.mfa.unenroll({
+          factorId: totpFactor.id
+        });
+        if (error) throw error;
+      }
+
+      toast.success("MFA protection removed.");
+      if(userInfo) {
+        const { data } = await supabase.from('users').update({mfa_enabled: false}).eq('id', userInfo.user_id);
+      }
+      onClose();
+
+      // Refresh de luxo com delay de 1.5s
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
+
+
+
   const handleCopySecret = () => {
-    navigator.clipboard.writeText(mockSecret.replace(/\s/g, ''));
+    navigator.clipboard.writeText(secret.replace(/\s/g, ''));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (verificationCode.length === 6) {
-      setStep('complete');
-    }
-  };
+  // const handleVerify2 = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (verificationCode.length === 6) {
+  //     setStep('complete');
+  //   }
+  // };
 
   const handleClose = () => {
     setStep('overview');
@@ -95,7 +214,7 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
             Cancel
           </Button>
           <Button
-            onClick={() => setStep('setup')}
+            onClick={handleStartSetup}
             className="flex-1 bg-foreground text-background hover:bg-foreground/90"
           >
             Enable 2FA
@@ -115,10 +234,11 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
       </div>
 
       <div className="flex justify-center">
-        <div className="w-48 h-48 bg-white p-4 rounded-sm border border-border">
-          {/* Mock QR Code - in production, generate real QR */}
-          <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0id2hpdGUiLz48cGF0aCBkPSJNMjAgMjBoNDB2NDBIMjB6TTcwIDIwaDEwdjEwSDcwek04MCAyMGgxMHYxMEg4MHpNMTAwIDIwaDEwdjEwSDEwMHpNMTIwIDIwaDEwdjEwSDEyMHpNMTQwIDIwaDQwdjQwSDE0MHpNMjAgMzBoMTB2MTBIMjB6TTUwIDMwaDEwdjEwSDUwek03MCAzMGgxMHYxMEg3MHpNOTAgMzBoMTB2MTBIOTB6TTExMCAzMGgxMHYxMEgxMTB6TTE0MCAzMGgxMHYxMEgxNDB6TTE3MCAzMGgxMHYxMEgxNzB6TTIwIDQwaDEwdjEwSDIwek0zMCA0MGgxMHYxMEgzMHpNNDAgNDBoMTB2MTBINDB6TTUwIDQwaDEwdjEwSDUwek03MCA0MGgxMHYxMEg3MHpNOTAgNDBoMTB2MTBIOTA+TTE0MCA0MGgxMHYxMEgxNDB6TTE1MCA0MGgxMHYxMEgxNTB6TTE2MCA0MGgxMHYxMEgxNjB6TTE3MCA0MGgxMHYxMEgxNzB6TTIwIDUwaDEwdjEwSDIwek0zMCA1MGgxMHYxMEgzMHpNNDAgNTBoMTB2MTBINDB6TTUwIDUwaDEwdjEwSDUwek03MCA1MGgxMHYxMEg3MHpNODAgNTBoMTB2MTBIOTBNMTEwIDUwaDEwdjEwSDExMHpNMTQwIDUwaDEwdjEwSDE0MHpNMTUwIDUwaDEwdjEwSDE1MHpNMTYwIDUwaDEwdjEwSDE2MHpNMTcwIDUwaDEwdjEwSDE3MHpNMjAgNjBoMTB2MTBIMjB6TTUwIDYwaDEwdjEwSDUwek03MCA2MGgxMHYxMEg3MHpNOTAgNjBoMTB2MTBIOTA+TTEwMCA2MGgxMHYxMEgxMDB6TTExMCA2MGgxMHYxMEgxMTB6TTE0MCA2MGgxMHYxMEgxNDB6TTE3MCA2MGgxMHYxMEgxNzB6TTIwIDcwaDQwdjEwSDIwek03MCA3MGgxMHYxMEg3MHpNOTAgNzBoMTB2MTBIOTBNMTEwIDcwaDEwdjEwSDExMHpNMTQwIDcwaDQwdjEwSDE0MHoiIGZpbGw9ImJsYWNrIi8+PC9zdmc+')] bg-contain bg-center bg-no-repeat" />
-        </div>
+          <img 
+          className="w-48 h-48 bg-white p-2 rounded-sm border border-border flex items-center justify-center"
+          // dangerouslySetInnerHTML={{ __html: qrCodeSvg }} // Injeta o SVG do Supabase
+          src={qrCodeSvg}
+        />
       </div>
 
       <div className="space-y-2">
@@ -127,7 +247,7 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
         </p>
         <div className="flex items-center justify-center gap-2">
           <code className="px-4 py-2 bg-accent rounded-sm font-mono text-sm tracking-wider">
-            {mockSecret}
+            {secret}
           </code>
           <button
             onClick={handleCopySecret}
@@ -186,7 +306,7 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
         <Button
           type="button"
           variant="outline"
-          onClick={() => setStep('setup')}
+          onClick={() => {setStep('setup');}}
           className="flex-1 border-border hover:bg-accent"
         >
           Back
@@ -264,6 +384,7 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
         </Button>
         <Button
           disabled={verificationCode.length !== 6}
+          onClick={handleDisableMFA}
           className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
         >
           Disable 2FA

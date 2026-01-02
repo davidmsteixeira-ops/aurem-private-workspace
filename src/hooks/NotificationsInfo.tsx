@@ -86,7 +86,7 @@ export function getNotificationsInfo() {
 
   async function getNotEntries(userID: number): Promise<void> {
     if(userID) {
-      console.log("User_id:", userID);
+      // console.log("User_id:", userID);
       const {data} = await supabase.from('notification_user_checks').select('id, user_id, notification_entry_id, is_checked, created_at, updated_at, section:notification_entries(id, notification_group_id, label, description, section2:notification_groups(id, title, description, is_default))').eq("user_id", userID);
 
       setNotificationEntries(data);

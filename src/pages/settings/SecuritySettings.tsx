@@ -55,8 +55,9 @@ export default function SecuritySettings() {
   const [showRecoveryCodesDialog, setShowRecoveryCodesDialog] = useState(false);
   const [showActivityLogDialog, setShowActivityLogDialog] = useState(false);
   const {userInfo, loading: loadingAuth} = getAuthInfo();
-  const [is2FAEnabled] = useState(true);
+  const is2FAEnabled = userInfo?.mfa_enabled;
 
+  if(loadingAuth) return null;
   return (
     <MainLayout>
       <div className="p-12 max-w-2xl">
@@ -125,9 +126,15 @@ export default function SecuritySettings() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-1">
                 <h2 className="font-medium text-foreground">Two-Factor Authentication</h2>
+                {is2FAEnabled ? 
                 <Badge variant="outline" className="text-success border-success/30 bg-success/10">
                   Enabled
+                </Badge> :
+                <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/10">
+                  Disabled
                 </Badge>
+              }
+                
               </div>
               <p className="text-sm text-muted-foreground mb-4">
                 Your account is protected with authenticator app verification.
@@ -140,13 +147,13 @@ export default function SecuritySettings() {
                 >
                   Manage 2FA
                 </Button>
-                <Button 
+                {/* <Button 
                   variant="ghost" 
                   className="text-muted-foreground hover:text-foreground"
                   onClick={() => setShowRecoveryCodesDialog(true)}
                 >
                   View Recovery Codes
-                </Button>
+                </Button> */}
               </div>
             </div>
           </div>
