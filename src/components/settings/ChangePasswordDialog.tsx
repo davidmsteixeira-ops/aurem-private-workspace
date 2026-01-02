@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { getAuthInfo } from '@/hooks/UserInfo';
 import { toast } from 'sonner';
+import { getDeviceDetails, insertAccessLogs } from '@/hooks/AccessLogsInfo';
+
 
 interface ChangePasswordDialogProps {
   isOpen: boolean;
@@ -64,6 +66,17 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
       if (data === "success") {
         const { error } = await supabase.from('users').update({ password_updated_at: new Date().toISOString()}).eq('id', userInfo.user_id);
         toast.success("Password updated successfully", { id: toastId });
+
+        // LOGGING FOR PASSWORD_CHANGE
+        // const { deviceName, browser, deviceType } = getDeviceDetails(window.navigator.userAgent);
+        // console.log(`Auditing access: ${browser} on ${deviceName}`);
+        // const geoRes = await fetch('https://ipapi.co/json/');
+        // const geoData = await geoRes.json();
+        // const location = `${geoData.city}, ${geoData.country_name}`;
+        // const ip_address = geoData.ip;
+        // insertAccessLogs(userInfo.user_id, 'password_change', deviceName, deviceType, browser, location, ip_address);
+
+
 
           // Refresh de luxo com delay de 1.5s
         setTimeout(() => {

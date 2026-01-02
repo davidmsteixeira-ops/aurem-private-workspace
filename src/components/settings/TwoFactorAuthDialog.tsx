@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/lib/supabase'; // Importe seu cliente aqui
 import { toast } from 'sonner';
 import { getAuthInfo } from '@/hooks/UserInfo';
+import { getDeviceDetails, insertAccessLogs } from '@/hooks/AccessLogsInfo';
+
 
 
 
@@ -86,7 +88,18 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
       
       if(userInfo) {
         const { data } = await supabase.from('users').update({mfa_enabled: true}).eq('id', userInfo.user_id);
+
+        // LOGGING FOR 2FA_Enabled
+        // const { deviceName, browser, deviceType } = getDeviceDetails(window.navigator.userAgent);
+        // console.log(`Auditing access: ${browser} on ${deviceName}`);
+        // const geoRes = await fetch('https://ipapi.co/json/');
+        // const geoData = await geoRes.json();
+        // const location = `${geoData.city}, ${geoData.country_name}`;
+        // const ip_address = geoData.ip;
+        // insertAccessLogs(userInfo.user_id, '2fa_enabled', deviceName, deviceType, browser, location, ip_address);
       }
+
+      
 
       // Refresh de luxo com delay de 1.5s
       setTimeout(() => {
@@ -124,6 +137,15 @@ export function TwoFactorAuthDialog({ isOpen, onClose, isEnabled }: TwoFactorAut
       toast.success("MFA protection removed.");
       if(userInfo) {
         const { data } = await supabase.from('users').update({mfa_enabled: false}).eq('id', userInfo.user_id);
+
+        // LOGGING FOR 2FA_Disabled
+        // const { deviceName, browser, deviceType } = getDeviceDetails(window.navigator.userAgent);
+        // console.log(`Auditing access: ${browser} on ${deviceName}`);
+        // const geoRes = await fetch('https://ipapi.co/json/');
+        // const geoData = await geoRes.json();
+        // const location = `${geoData.city}, ${geoData.country_name}`;
+        // const ip_address = geoData.ip;
+        // insertAccessLogs(userInfo.user_id, '2fa_disabled', deviceName, deviceType, browser, location, ip_address);
       }
       onClose();
 

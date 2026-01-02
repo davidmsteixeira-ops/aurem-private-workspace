@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, Shield, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { getDeviceDetails, insertAccessLogs } from '@/hooks/AccessLogsInfo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,10 +13,18 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+
+  
+
   // Passo 1: Login com Email e Senha
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // const { data, error } = await adminAuthClient.mfa.deleteFactor({
+    //   id: "aacb1e53-7e4f-4948-ab38-3215d61587a2",
+    //   userId: "f34556b2-1626-4818-b589-7ef132aed5ae",
+    // })
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -27,6 +36,8 @@ const Login = () => {
 
       // Verificar se o utilizador precisa de MFA (aal2)
       const { data: mfaLevels, error: mfaError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+      
       
       if (mfaError) throw mfaError;
 
@@ -35,6 +46,25 @@ const Login = () => {
         toast.info("Security verification required");
       } else {
         toast.success("Welcome to Aurem Private Office");
+
+
+        const {data: {user}} = await supabase.auth.getUser();
+        if(user) {
+          const {data} = await supabase.from("users").select().eq("user_id", user.id).limit(1).single();
+
+
+
+          // LOGGING FOR ACCESS
+          // const { deviceName, browser, deviceType } = getDeviceDetails(window.navigator.userAgent);
+          // console.log(`Auditing access: ${browser} on ${deviceName}`);
+          // const geoRes = await fetch('https://ipapi.co/json/');
+          // const geoData = await geoRes.json();
+          // const location = `${geoData.city}, ${geoData.country_name}`;
+          // const ip_address = geoData.ip;
+          // insertAccessLogs(data.id, 'login', deviceName, deviceType, browser, location, ip_address);
+        }
+
+
         navigate('/');
       }
     } catch (error: any) {
@@ -48,10 +78,12 @@ const Login = () => {
   const handleMfaVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
 
     try {
       // 1. Obter os fatores de autenticação do utilizador
       const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+      // console.log("TTTTT2: ", factors);
       if (factorsError) throw factorsError;
 
       const totpFactor = factors.totp.find(f => f.status === 'verified');
@@ -72,6 +104,7 @@ const Login = () => {
 
       if (verifyError) throw verifyError;
 
+ 
       toast.success("Identity verified");
       navigate('/');
     } catch (error: any) {

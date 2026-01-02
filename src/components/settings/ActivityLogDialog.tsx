@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, MapPin, Monitor, Smartphone, Tablet, Globe, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/lib/supabase';
+import { getAuthInfo } from '@/hooks/UserInfo';
 
 interface ActivityLogDialogProps {
   isOpen: boolean;
@@ -24,96 +27,96 @@ interface ActivityItem {
   date: string;
 }
 
-const activityLog: ActivityItem[] = [
-  {
-    id: 1,
-    type: 'login',
-    device: 'MacBook Pro',
-    deviceType: 'desktop',
-    browser: 'Safari 17.2',
-    location: 'New York, United States',
-    ip: '192.168.1.***',
-    timestamp: '2 hours ago',
-    date: 'December 31, 2024',
-  },
-  {
-    id: 2,
-    type: 'login',
-    device: 'iPhone 15 Pro',
-    deviceType: 'mobile',
-    browser: 'Safari Mobile',
-    location: 'New York, United States',
-    ip: '192.168.1.***',
-    timestamp: '1 day ago',
-    date: 'December 30, 2024',
-  },
-  {
-    id: 3,
-    type: '2fa_enabled',
-    device: 'MacBook Pro',
-    deviceType: 'desktop',
-    browser: 'Safari 17.2',
-    location: 'New York, United States',
-    ip: '192.168.1.***',
-    timestamp: '3 days ago',
-    date: 'December 28, 2024',
-  },
-  {
-    id: 4,
-    type: 'password_change',
-    device: 'MacBook Pro',
-    deviceType: 'desktop',
-    browser: 'Safari 17.2',
-    location: 'Boston, United States',
-    ip: '192.168.2.***',
-    timestamp: '1 week ago',
-    date: 'December 24, 2024',
-  },
-  {
-    id: 5,
-    type: 'login',
-    device: 'iPad Pro',
-    deviceType: 'tablet',
-    browser: 'Safari Mobile',
-    location: 'Boston, United States',
-    ip: '192.168.2.***',
-    timestamp: '1 week ago',
-    date: 'December 24, 2024',
-  },
-  {
-    id: 6,
-    type: 'session_revoked',
-    device: 'Windows PC',
-    deviceType: 'desktop',
-    browser: 'Chrome 120',
-    location: 'Miami, United States',
-    ip: '192.168.3.***',
-    timestamp: '2 weeks ago',
-    date: 'December 17, 2024',
-  },
-  {
-    id: 7,
-    type: 'login',
-    device: 'MacBook Pro',
-    deviceType: 'desktop',
-    browser: 'Safari 17.1',
-    location: 'New York, United States',
-    ip: '192.168.1.***',
-    timestamp: '3 weeks ago',
-    date: 'December 10, 2024',
-  },
-  {
-    id: 8,
-    type: 'logout',
-    device: 'iPhone 15 Pro',
-    deviceType: 'mobile',
-    browser: 'Safari Mobile',
-    location: 'New York, United States',
-    ip: '192.168.1.***',
-    timestamp: '3 weeks ago',
-    date: 'December 10, 2024',
-  },
-];
+// const activityLog: ActivityItem[] = [
+//   {
+//     id: 1,
+//     type: 'login',
+//     device: 'MacBook Pro',
+//     deviceType: 'desktop',
+//     browser: 'Safari 17.2',
+//     location: 'New York, United States',
+//     ip: '192.168.1.***',
+//     timestamp: '2 hours ago',
+//     date: 'December 31, 2024',
+//   },
+//   {
+//     id: 2,
+//     type: 'login',
+//     device: 'iPhone 15 Pro',
+//     deviceType: 'mobile',
+//     browser: 'Safari Mobile',
+//     location: 'New York, United States',
+//     ip: '192.168.1.***',
+//     timestamp: '1 day ago',
+//     date: 'December 30, 2024',
+//   },
+//   {
+//     id: 3,
+//     type: '2fa_enabled',
+//     device: 'MacBook Pro',
+//     deviceType: 'desktop',
+//     browser: 'Safari 17.2',
+//     location: 'New York, United States',
+//     ip: '192.168.1.***',
+//     timestamp: '3 days ago',
+//     date: 'December 28, 2024',
+//   },
+//   {
+//     id: 4,
+//     type: 'password_change',
+//     device: 'MacBook Pro',
+//     deviceType: 'desktop',
+//     browser: 'Safari 17.2',
+//     location: 'Boston, United States',
+//     ip: '192.168.2.***',
+//     timestamp: '1 week ago',
+//     date: 'December 24, 2024',
+//   },
+//   {
+//     id: 5,
+//     type: 'login',
+//     device: 'iPad Pro',
+//     deviceType: 'tablet',
+//     browser: 'Safari Mobile',
+//     location: 'Boston, United States',
+//     ip: '192.168.2.***',
+//     timestamp: '1 week ago',
+//     date: 'December 24, 2024',
+//   },
+//   {
+//     id: 6,
+//     type: 'session_revoked',
+//     device: 'Windows PC',
+//     deviceType: 'desktop',
+//     browser: 'Chrome 120',
+//     location: 'Miami, United States',
+//     ip: '192.168.3.***',
+//     timestamp: '2 weeks ago',
+//     date: 'December 17, 2024',
+//   },
+//   {
+//     id: 7,
+//     type: 'login',
+//     device: 'MacBook Pro',
+//     deviceType: 'desktop',
+//     browser: 'Safari 17.1',
+//     location: 'New York, United States',
+//     ip: '192.168.1.***',
+//     timestamp: '3 weeks ago',
+//     date: 'December 10, 2024',
+//   },
+//   {
+//     id: 8,
+//     type: 'logout',
+//     device: 'iPhone 15 Pro',
+//     deviceType: 'mobile',
+//     browser: 'Safari Mobile',
+//     location: 'New York, United States',
+//     ip: '192.168.1.***',
+//     timestamp: '3 weeks ago',
+//     date: 'December 10, 2024',
+//   },
+// ];
 
 const getActivityLabel = (type: ActivityType): string => {
   switch (type) {
@@ -124,9 +127,9 @@ const getActivityLabel = (type: ActivityType): string => {
     case 'password_change':
       return 'Password changed';
     case '2fa_enabled':
-      return '2FA enabled';
+      return '2FA Enabled';
     case '2fa_disabled':
-      return '2FA disabled';
+      return '2FA Disabled';
     case 'session_revoked':
       return 'Session revoked';
     default:
@@ -147,19 +150,71 @@ const getDeviceIcon = (deviceType: 'desktop' | 'mobile' | 'tablet') => {
 
 export function ActivityLogDialog({ isOpen, onClose }: ActivityLogDialogProps) {
   const [filter, setFilter] = useState<ActivityType | 'all'>('all');
+  const {userInfo, loading} = getAuthInfo();
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+
 
   const filteredLog = filter === 'all' 
-    ? activityLog 
-    : activityLog.filter(item => item.type === filter);
+    ? activities 
+    : activities.filter(item => item.type === filter);
 
-  // Group by date
-  const groupedLog = filteredLog.reduce((acc, item) => {
-    if (!acc[item.date]) {
-      acc[item.date] = [];
+  // // Group by date
+  // const groupedLog = filteredLog.reduce((acc, item) => {
+  //   if (!acc[item.date]) {
+  //     acc[item.date] = [];
+  //   }
+  //   acc[item.date].push(item);
+  //   return acc;
+  // }, {} as Record<string, ActivityItem[]>);
+
+  useEffect(() => {
+      if (isOpen) {
+        fetchActivityLog();
+      }
+    }, [isOpen, filter]);
+    
+  
+    const fetchActivityLog = async () => {
+      setIsLoading(true);
+      
+      if(userInfo) {
+        const userID = userInfo.user_id;
+        let query = supabase.from('user_activity').select().eq("user_id", userID).order('created_at', { ascending: false });
+    
+        if (filter !== 'all') {
+          query = query.eq('type', filter);
+        }
+    
+        const { data, error } = await query;
+    
+        if (data) {
+          const formattedData = data.map(item => ({
+            id: item.id,
+            type: item.type as ActivityType,
+            device: item.device_name,
+            deviceType: item.device_type,
+            browser: item.browser,
+            location: item.location,
+            ip: item.ip_address,
+            timestamp: formatDistanceToNow(new Date(item.created_at), { addSuffix: true }),
+            date: new Date(item.created_at).toLocaleDateString('en-US', { 
+              month: 'long', day: 'numeric', year: 'numeric' 
+            })
+          }));
+          setActivities(formattedData);
+      }
     }
-    acc[item.date].push(item);
-    return acc;
-  }, {} as Record<string, ActivityItem[]>);
+      setIsLoading(false);
+    };
+  
+    // Agrupamento por data (mesma lógica que já tinha, mas usando o estado 'activities')
+    const groupedLog = activities.reduce((acc, item) => {
+      if (!acc[item.date]) acc[item.date] = [];
+      acc[item.date].push(item);
+      return acc;
+    }, {} as Record<string, ActivityItem[]>);
 
   return (
     <AnimatePresence>
@@ -280,7 +335,7 @@ export function ActivityLogDialog({ isOpen, onClose }: ActivityLogDialogProps) {
             <div className="p-6 border-t border-border flex-shrink-0">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Showing {filteredLog.length} of {activityLog.length} events
+                  Showing {filteredLog.length} of {activities.length} events
                 </p>
                 <Button variant="outline" className="border-border hover:bg-accent">
                   Export Log

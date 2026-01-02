@@ -11,30 +11,32 @@ import { TwoFactorAuthDialog } from '@/components/settings/TwoFactorAuthDialog';
 import { RecoveryCodesDialog } from '@/components/settings/RecoveryCodesDialog';
 import { ActivityLogDialog } from '@/components/settings/ActivityLogDialog';
 import { getAuthInfo } from '@/hooks/UserInfo';
+import { getDeviceDetails } from '@/hooks/AccessLogsInfo';
 
-const accessLogs = [
-  {
-    id: 1,
-    device: 'MacBook Pro',
-    location: 'New York, United States',
-    time: '2 hours ago',
-    current: true,
-  },
-  {
-    id: 2,
-    device: 'iPhone 15 Pro',
-    location: 'New York, United States',
-    time: '1 day ago',
-    current: false,
-  },
-  {
-    id: 3,
-    device: 'iPad Pro',
-    location: 'Boston, United States',
-    time: '3 days ago',
-    current: false,
-  },
-];
+
+// const accessLogs = [
+//   {
+//     id: 1,
+//     device: 'MacBook Pro',
+//     location: 'New York, United States',
+//     time: '2 hours ago',
+//     current: true,
+//   },
+//   // {
+//   //   id: 2,
+//   //   device: 'iPhone 15 Pro',
+//   //   location: 'New York, United States',
+//   //   time: '1 day ago',
+//   //   current: false,
+//   // },
+//   // {
+//   //   id: 3,
+//   //   device: 'iPad Pro',
+//   //   location: 'Boston, United States',
+//   //   time: '3 days ago',
+//   //   current: false,
+//   // },
+// ];
 
 export function formatLongDate(
   date: string | null,
@@ -49,6 +51,7 @@ export function formatLongDate(
   }).format(new Date(date));
 }
 
+
 export default function SecuritySettings() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showTwoFactorDialog, setShowTwoFactorDialog] = useState(false);
@@ -56,6 +59,20 @@ export default function SecuritySettings() {
   const [showActivityLogDialog, setShowActivityLogDialog] = useState(false);
   const {userInfo, loading: loadingAuth} = getAuthInfo();
   const is2FAEnabled = userInfo?.mfa_enabled;
+
+  const { deviceName, browser, deviceType } = getDeviceDetails(window.navigator.userAgent);
+
+  const accessLogs = [
+    {
+      id: 1,
+      device: deviceName,
+      location: userInfo?.language,
+      time: browser,
+      current: true,
+    },
+  ]
+
+  
 
   if(loadingAuth) return null;
   return (
