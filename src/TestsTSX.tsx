@@ -1,191 +1,137 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { formatDistanceToNow } from 'date-fns'; // Opcional para "2 hours ago"
-import { enUS } from 'date-fns/locale';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, MapPin, Monitor, Smartphone, Tablet, Globe, Filter } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Send, MessageCircle, Plus, Sparkles } from 'lucide-react';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 import { getAuthInfo } from '@/hooks/UserInfo';
-import { getAccessLogs } from '@/hooks/AccessLogsInfo';
+import { toast } from 'sonner';
 
+// ... (Interfaces permanecem iguais)
 
+export default function BrandIntelligence() {
+  const { userInfo } = getAuthInfo();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-// ... (seus imports de ícones e UI permanecem iguais)
-interface ActivityLogDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-type ActivityType = 'login' | 'logout' | 'password_change' | '2fa_enabled' | '2fa_disabled' | 'session_revoked';
-
-interface ActivityItem {
-  id: number;
-  type: ActivityType;
-  device: string;
-  deviceType: 'desktop' | 'mobile' | 'tablet';
-  browser: string;
-  location: string;
-  ip: string;
-  timestamp: string;
-  date: string;
-}
-
-const getActivityLabel = (type: ActivityType): string => {
-  switch (type) {
-    case 'login':
-      return 'Signed in';
-    case 'logout':
-      return 'Signed out';
-    case 'password_change':
-      return 'Password changed';
-    case '2fa_enabled':
-      return '2FA enabled';
-    case '2fa_disabled':
-      return '2FA disabled';
-    case 'session_revoked':
-      return 'Session revoked';
-    default:
-      return 'Activity';
-  }
-};
-
-const getDeviceIcon = (deviceType: 'desktop' | 'mobile' | 'tablet') => {
-  switch (deviceType) {
-    case 'desktop':
-      return <Monitor className="w-4 h-4" strokeWidth={1.5} />;
-    case 'mobile':
-      return <Smartphone className="w-4 h-4" strokeWidth={1.5} />;
-    case 'tablet':
-      return <Tablet className="w-4 h-4" strokeWidth={1.5} />;
-  }
-};
-
-export function ActivityLogDialog({ isOpen, onClose }: ActivityLogDialogProps) {
-  const [filter, setFilter] = useState<ActivityType | 'all'>('all');
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  // 1. Carregar lista de conversas (Sidebar) - Apenas no Load inicial
   useEffect(() => {
-    if (isOpen) {
-      fetchActivityLog();
+    if (userInfo?.user_id) {
+      fetchConversations();
     }
-  }, [isOpen, filter]);
+  }, [userInfo?.user_id]);
 
-  const fetchActivityLog = async () => {
-    setIsLoading(true);
-    let query = supabase
-      .from('user_activity')
+  // 2. Carregar mensagens SEMPRE que a selectedConversation mudar
+  useEffect(() => {
+    if (selectedConversation) {
+      fetchMessages(selectedConversation);
+    } else {
+      setMessages([]); // Limpa se for "New Conversation"
+    }
+  }, [selectedConversation]);
+
+  const fetchConversations = async () => {
+    const { data, error } = await supabase
+      .from('ai_conversations')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (filter !== 'all') {
-      query = query.eq('type', filter);
+      .eq('user_id', userInfo.user_id)
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching conversations:", error);
+      return;
     }
-
-    const { data, error } = await query;
-
-    if (data) {
-      const formattedData = data.map(item => ({
-        id: item.id,
-        type: item.type as ActivityType,
-        device: item.device_name,
-        deviceType: item.device_type,
-        browser: item.browser,
-        location: item.location,
-        ip: item.ip_address,
-        timestamp: formatDistanceToNow(new Date(item.created_at), { addSuffix: true }),
-        date: new Date(item.created_at).toLocaleDateString('en-US', { 
-          month: 'long', day: 'numeric', year: 'numeric' 
-        })
-      }));
-      setActivities(formattedData);
-    }
-    setIsLoading(false);
+    if (data) setConversations(data);
   };
 
-  // Agrupamento por data (mesma lógica que já tinha, mas usando o estado 'activities')
-  const groupedLog = activities.reduce((acc, item) => {
-    if (!acc[item.date]) acc[item.date] = [];
-    acc[item.date].push(item);
-    return acc;
-  }, {} as Record<string, ActivityItem[]>);
+  const fetchMessages = async (convId: string) => {
+    // Para UX de luxo, limpamos as mensagens antigas antes de mostrar as novas 
+    // ou mantemos para uma transição suave. Aqui limpamos para evitar confusão.
+    const { data, error } = await supabase
+      .from('ai_messages')
+      .select('*')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true });
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop e Modal permanecem iguais... */}
-          
-          <div className="flex-1 overflow-y-auto p-6">
-            {isLoading ? (
-              <div className="h-40 flex items-center justify-center font-serif italic text-neutral-400">
-                Retrieving security ledger...
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {Object.keys(groupedLog).length === 0 ? (
-                  <p className="text-center text-neutral-400 py-10">No records found.</p>
-                ) : (
-                  Object.entries(groupedLog).map(([date, items]) => (
-                    <div key={date}>
-                      <h3 className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 mb-4">{date}</h3>
-                      <div className="space-y-4">
-                       {items.map((item) => (
-                          <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-4 bg-card border border-border rounded-sm"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex items-start gap-4">
-                                <div className="p-2 bg-accent rounded-sm">
-                                  {getDeviceIcon(item.deviceType)}
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium text-foreground">
-                                      {getActivityLabel(item.type)}
-                                    </p>
-                                    <Badge variant="outline" className="text-xs">
-                                      {item.device}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <Globe className="w-3 h-3" />
-                                      {item.browser}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <MapPin className="w-3 h-3" />
-                                      {item.location}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground/70">
-                                    IP: {item.ip}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                {item.timestamp}
-                              </span>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Footer permanece igual... */}
-        </>
-      )}
-    </AnimatePresence>
-  );
+    if (error) {
+      toast.error("Could not retrieve the conversation history.");
+      return;
+    }
+    if (data) setMessages(data);
+  };
+
+  // ... (mockAiCall e scrollToBottom permanecem iguais)
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || !userInfo) return;
+
+    let currentConvId = selectedConversation;
+    const userPrompt = inputValue;
+    setInputValue('');
+    setIsTyping(true);
+
+    try {
+      // A. Conversa Nova
+      if (!currentConvId) {
+        const { data: newConv, error: convError } = await supabase
+          .from('ai_conversations')
+          .insert({
+            user_id: userInfo.user_id,
+            client_id: userInfo.client_id,
+            title: userPrompt.substring(0, 30) + '...',
+          })
+          .select().single();
+
+        if (convError) throw convError;
+        currentConvId = newConv.id;
+        setSelectedConversation(currentConvId);
+        // Não precisamos de dar fetchConversations aqui, podemos apenas adicionar ao estado
+      }
+
+      // B. Guardar mensagem do utilizador
+      const { data: userMsgData } = await supabase.from('ai_messages').insert({
+        conversation_id: currentConvId,
+        role: 'user',
+        content: userPrompt
+      }).select().single();
+
+      // Atualizar UI instantaneamente (Optimistic Update)
+      setMessages(prev => [...prev, userMsgData]);
+
+      // C. IA Response
+      const aiResponse = await mockAiCall(userPrompt);
+
+      // D. Guardar resposta da IA
+      const { data: aiMsgData } = await supabase.from('ai_messages').insert({
+        conversation_id: currentConvId,
+        role: 'assistant',
+        content: aiResponse
+      }).select().single();
+
+      // E. Atualizar Conversas e Metadados
+      await supabase.from('ai_conversations').update({
+        last_message: aiResponse.substring(0, 50),
+        updated_at: new Date().toISOString()
+      }).eq('id', currentConvId);
+
+      setMessages(prev => [...prev, aiMsgData]);
+      fetchConversations(); // Atualiza a ordem no sidebar
+
+    } catch (error) {
+      toast.error("The oracle is temporarily silent.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const startNewConversation = () => {
+    setSelectedConversation(null);
+    setMessages([]);
+  };
+
+  // ... (O JSX permanece igual ao que já tens)
 }

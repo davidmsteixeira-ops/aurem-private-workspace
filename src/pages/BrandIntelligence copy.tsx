@@ -32,68 +32,39 @@ const suggestedQuestions = [
   "Suggest ways to strengthen our positioning in the European market.",
 ];
 
+const mockConversations: Conversation[] = [
+  {
+    id: '1',
+    client_id: 1,
+    user_id: 2,
+    title: 'Q4 Marketing Strategy',
+    lastMessage: 'Based on your brand guidelines...',
+    timestamp: new Date('2024-12-20'),
+  },
+  {
+    id: '2',
+    client_id: 1,
+    user_id: 2,
+    title: 'Packaging Design Review',
+    lastMessage: 'The proposed materials align with...',
+    timestamp: new Date('2024-12-18'),
+  },
+  {
+    id: '3',
+    client_id: 1,
+    user_id: 2,
+    title: 'Press Release Tone',
+    lastMessage: 'I recommend a more understated approach...',
+    timestamp: new Date('2024-12-15'),
+  },
+];
 
 export default function BrandIntelligence() {
-  const { userInfo } = getAuthInfo();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // 1. Carregar lista de conversas (Sidebar)
-  // useEffect(() => {
-  //   if (userInfo && !isInitialized) {fetchConversations(); setIsInitialized(true);}
-  // }, [userInfo, isInitialized]);
-
-  // // 2. Carregar mensagens quando trocar de conversa
-  // useEffect(() => {
-  //   if (selectedConversation && !isInitialized) {fetchMessages(selectedConversation); setIsInitialized(true);}
-  // }, [selectedConversation, isInitialized]);
-  useEffect(() => {
-    if (userInfo?.user_id) {
-      fetchConversations();
-    }
-  }, [userInfo?.user_id]);
-
-  // 2. Carregar mensagens SEMPRE que a selectedConversation mudar
-  useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation);
-    } else {
-      setMessages([]); // Limpa se for "New Conversation"
-    }
-  }, [selectedConversation]);
-
-  const fetchConversations = async () => {
-    const { data } = await supabase
-      .from('ai_conversations')
-      .select()
-      .eq('user_id', userInfo.user_id)
-      .order('updated_at', { ascending: false });
-    if (data) setConversations(data);
-  };
-
-  // console.log("TEST: ", conversations);
-
-  const fetchMessages = async (convId: string) => {
-    const { data } = await supabase
-      .from('ai_messages')
-      .select()
-      .eq('conversation_id', convId)
-      .order('created_at', { ascending: true });
-    if (data) setMessages(data);
-  };
-
-  const mockAiCall = async (userPrompt: string) => {
-    return "You should use precise language and factual statements while keeping sentences concise and human, avoiding jargon or overly corporate phrasing.";
-  };
-
-
-
-
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,67 +75,44 @@ export default function BrandIntelligence() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || !userInfo) return;
+    if (!inputValue.trim()) return;
 
-    let currentConvId = selectedConversation;
-    const userPrompt = inputValue;
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      user_id: 2,
+      conversation_id: 1,
+      role: 'user',
+      content: inputValue,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
-    try {
-      // A. Conversa Nova
-      if (!currentConvId) {
-        const { data: newConv, error: convError } = await supabase
-          .from('ai_conversations')
-          .insert({
-            user_id: userInfo.user_id,
-            client_id: userInfo.client_id,
-            title: userPrompt.substring(0, 30) + '...',
-          })
-          .select().single();
-
-        if (convError) throw convError;
-        currentConvId = newConv.id;
-        setSelectedConversation(currentConvId);
-        // Não precisamos de dar fetchConversations aqui, podemos apenas adicionar ao estado
-      }
-
-      // B. Guardar mensagem do utilizador
-      const { data: userMsgData } = await supabase.from('ai_messages').insert({
-        user_id: userInfo.user_id,
-        conversation_id: currentConvId,
-        role: 'user',
-        content: userPrompt
-      }).select().single();
-
-      // Atualizar UI instantaneamente (Optimistic Update)
-      setMessages(prev => [...prev, userMsgData]);
-
-      // C. IA Response
-      const aiResponse = await mockAiCall(userPrompt);
-
-      // D. Guardar resposta da IA
-      const { data: aiMsgData } = await supabase.from('ai_messages').insert({
-        user_id: 3,
-        conversation_id: currentConvId,
+    // Simulate AI response
+    setTimeout(() => {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        user_id: 2,
+        conversation_id: 1,
         role: 'assistant',
-        content: aiResponse
-      }).select().single();
+        content: `Thank you for your question regarding Fungisteel's brand strategy. Based on your Brand Vault documentation, I'd recommend approaching this with careful consideration of your core positioning pillars.
 
-      // E. Atualizar Conversas e Metadados
-      await supabase.from('ai_conversations').update({
-        last_message: aiResponse.substring(0, 50),
-        updated_at: new Date().toISOString()
-      }).eq('id', currentConvId);
+Your brand voice emphasizes quiet confidence and precision. Any communication should lead with the innovation narrative rather than sustainability claims—let the excellence speak for itself.
 
-      setMessages(prev => [...prev, aiMsgData]);
-      fetchConversations(); // Atualiza a ordem no sidebar
+I'd suggest structuring your approach around three key elements:
 
-    } catch (error) {
-      toast.error("The oracle is temporarily silent.");
-    } finally {
+1. **Material storytelling** — Lead with the transformative potential of bio-composite technology
+2. **Partnership framing** — Position this as a collaborative opportunity rather than a transactional relationship  
+3. **Selective messaging** — Remember that your audience is design-led decision makers, not general contractors
+
+Would you like me to elaborate on any of these recommendations?`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, assistantMessage]);
       setIsTyping(false);
-    }
+    }, 2000);
   };
 
   const handleQuestionClick = (question: string) => {
@@ -174,12 +122,11 @@ export default function BrandIntelligence() {
   const startNewConversation = () => {
     setMessages([]);
     setSelectedConversation(null);
-    setIsInitialized(false);
   };
 
   return (
     <MainLayout>
-      <div className="flex min-h-[calc(100vh-4rem)]">
+      <div className="flex h-[calc(100vh-4rem)]">
         {/* Conversation Sidebar */}
         <div className="w-72 border-r border-border bg-card/50 flex flex-col">
           <div className="p-4 border-b border-border">
@@ -196,7 +143,7 @@ export default function BrandIntelligence() {
             <p className="px-3 py-2 text-xs uppercase tracking-wide-luxury text-muted-foreground">
               Recent
             </p>
-            {conversations.map((conv) => (
+            {mockConversations.map((conv) => (
               <button
                 key={conv.id}
                 onClick={() => setSelectedConversation(conv.id)}
@@ -224,7 +171,7 @@ export default function BrandIntelligence() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col h-screen">
+        <div className="flex-1 flex flex-col">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-8">
             {messages.length === 0 ? (
