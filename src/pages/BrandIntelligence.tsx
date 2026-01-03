@@ -44,14 +44,6 @@ export default function BrandIntelligence() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // 1. Carregar lista de conversas (Sidebar)
-  // useEffect(() => {
-  //   if (userInfo && !isInitialized) {fetchConversations(); setIsInitialized(true);}
-  // }, [userInfo, isInitialized]);
-
-  // // 2. Carregar mensagens quando trocar de conversa
-  // useEffect(() => {
-  //   if (selectedConversation && !isInitialized) {fetchMessages(selectedConversation); setIsInitialized(true);}
-  // }, [selectedConversation, isInitialized]);
   useEffect(() => {
     if (userInfo?.user_id) {
       fetchConversations();
@@ -142,6 +134,17 @@ export default function BrandIntelligence() {
 
       // C. IA Response
       const aiResponse = await mockAiCall(userPrompt);
+      // C. CHAMADA À EDGE FUNCTION (IA REAL)
+      // const { data: aiData, error: aiError } = await supabase.functions.invoke('brand-intelligence-chat', {
+      //   body: { 
+      //     conversation_id: currentConvId, 
+      //     message: userPrompt,
+      //     client_id: userInfo.client_id 
+      //   }
+      // });
+
+      // if (aiError) throw aiError;
+      // const aiResponse = aiData.content;
 
       // D. Guardar resposta da IA
       const { data: aiMsgData } = await supabase.from('ai_messages').insert({
